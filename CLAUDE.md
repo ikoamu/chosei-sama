@@ -10,30 +10,62 @@ Google Workspace の共有カレンダーから、指定メンバー全員が空
 
 ## WHAT — 現状（2026-06 時点）
 
+ランタイム境界で `scheduler`（純粋エンジン）/ `server`（Worker）/ `client`（ブラウザ）に分割し、
+共有ユーティリティは `shared/` に置く。各ディレクトリは原則 `index.ts` を公開窓口とする。
+
 ```
 src/
-  server.ts              # ChatAgent（AIChatAgent ベース）＋ツール定義
-  app.tsx                # チャット UI（Kumo コンポーネント）
-  client.tsx             # React エントリポイント
-  styles.css             # Tailwind + Kumo スタイル
-  scheduler-core.ts      # 提案エンジン（実装済み・テスト済み）
-  scheduler-core.test.ts # 区間ロジックの単体テスト（13件）
-index.html               # SPA エントリ
+  shared/
+    base64url.ts          # base64url 変換（server / scheduler 共有）
+  scheduler/              # 提案エンジン（ランタイム非依存・テスト対象）
+    index.ts              # 公開 API のバレル（外からはここ経由で import）
+    types.ts              # Interval / SlotPreferences など型定義
+    intervals.ts          # mergeIntervals / subtractIntervals / overlaps（純粋）
+    timezone.ts           # epoch ms ⇄ IANA tz の変換ヘルパー（純粋）
+    windows.ts            # workingWindowsInRange（勤務時間ウィンドウ生成）
+    slots.ts              # commonFree / findSlots / scoreSlot
+    google-auth.ts        # getAccessToken（SA 鍵 → トークン, RS256）
+    freebusy.ts           # queryFreeBusy（FreeBusy 照会）
+    suggest.ts            # suggestSlots（単発）/ suggestRecurringSlots（定期）
+    intervals.test.ts     # 区間・tz ロジックの単体テスト（13件）
+  server/                 # Worker / Durable Object 側
+    index.ts              # Worker エントリ（wrangler main）。ルーティング＋ChatAgent re-export
+    chat-agent.ts         # ChatAgent（AIChatAgent ベースの Durable Object）
+    prompt.ts             # システムプロンプト生成
+    service-account.ts    # GOOGLE_SA_KEY（Secrets）の読み出し
+    tools/
+      index.ts            # buildTools（自前ツールを束ねる）
+      calendar-tools.ts   # suggestSlots / suggestRecurringSlots ツール
+      task-tools.ts       # getUserTimezone / scheduleTask など
+    auth/
+      index.ts            # /oauth/* ハンドラ＋ verifySession re-export
+      session.ts          # 署名付きセッション Cookie（HMAC）
+      google-oauth.ts     # Google ログイン（認可 URL・コード交換）
+  client/                 # ブラウザ / React 側
+    index.tsx             # React エントリポイント
+    App.tsx               # ルート（ログイン／チャットの出し分け）
+    styles.css            # Tailwind + Kumo スタイル
+    types.ts              # AuthUser などクライアント共有型
+    hooks/useAuth.ts      # ログイン状態フック
+    lib/directory.ts      # People API ディレクトリ検索（ブラウザ直叩き）
+    components/           # Chat / ChatHeader / MessageList / ToolPartView /
+                          # ParticipantPicker / LoginScreen / ThemeToggle
+index.html                # SPA エントリ（/src/client/index.tsx を読む）
+env.secrets.d.ts          # Secrets（wrangler types で消えない Env 型補完）
 wrangler.jsonc            # Workers / Durable Object 設定
 vite.config.ts            # Vite ビルド設定
 workflows/
   sanity-check.yml        # CI（push/PR → npm install & check）
 ```
 
-- `src/scheduler-core.ts` … 提案エンジン。**実装済み・テスト済み**。
+- `src/scheduler/` … 提案エンジン。**実装済み・テスト済み**。公開 API は `index.ts` 経由。
   - `queryFreeBusy` … Google Calendar FreeBusy 照会（busy区間だけ取得し、予定の中身は見ない）。
   - `getAccessToken` … サービスアカウント鍵 → アクセストークン（Web Crypto / RS256、ドメイン委任の `subject` 偽装あり）。
   - 純粋関数の区間演算: `mergeIntervals` / `subtractIntervals` / `commonFree` / `findSlots`。
   - 高レベルAPI: `suggestSlots`（単発）/ `suggestRecurringSlots`（定期）。
-- `src/scheduler-core.test.ts` … 区間ロジックの単体テスト（13件）。
-- `src/server.ts` … Agents スターターの `ChatAgent`（デモツール付き）。**scheduler-core との結線はまだ**。
-- `src/app.tsx` … チャット UI。Kumo デザインシステム、ダーク/ライトモード対応。
-- **まだ無い**: scheduler-core との結線、イベント作成（予約確定）、自然文の解釈層、認証情報の配線。
+- `src/server/` … `ChatAgent` と OAuth・ツール定義。**scheduler との結線済み**（`tools/calendar-tools.ts`）。
+- `src/client/` … チャット UI。Kumo デザインシステム、ダーク/ライトモード対応。
+- **まだ無い**: イベント作成（予約確定）、自然文の解釈層の作り込み。
 
 ## HOW — 技術スタックと方針
 
@@ -45,10 +77,9 @@ workflows/
 
 ## 次のタスク（優先順）
 
-1. **scheduler-core との結線** — `src/server.ts` のデモツールを置き換え、`suggestSlots` / `suggestRecurringSlots` を呼ぶツールを定義する。
-2. 提案結果を予約確定する `events.insert`。**必ず human-in-the-loop**:「候補提示 → 人が承認 → 作成＋招待送信」。承認前に書き込まない。
-3. **自然文の解釈層**（「Dさんと30分おさえて」→ パラメータ抽出 → `suggestSlots`）。
-4. 仕上げ: 辞退済み予定/ランチ枠/会議間バッファ/個人別勤務時間、UI、複数tz対応。
+1. 提案結果を予約確定する `events.insert`。**必ず human-in-the-loop**:「候補提示 → 人が承認 → 作成＋招待送信」。承認前に書き込まない。
+2. **自然文の解釈層**（「Dさんと30分おさえて」→ パラメータ抽出 → `suggestSlots`）。
+3. 仕上げ: 辞退済み予定/ランチ枠/会議間バッファ/個人別勤務時間、UI、複数tz対応。
 
 ## ガードレール（重要）
 
@@ -59,7 +90,7 @@ workflows/
 ## コマンド
 
 - 開発サーバ: `pnpm dev`
-- コアのテスト: `pnpm exec tsx src/scheduler-core.test.ts`
+- コアのテスト: `pnpm exec tsx src/scheduler/intervals.test.ts`
 - lint / format / 型チェック: `pnpm check`
 - デプロイ: `pnpm deploy`（= `vite build && wrangler deploy`）
 

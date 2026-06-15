@@ -3,10 +3,9 @@ import {
   subtractIntervals,
   workingWindowsInRange,
   commonFree,
-  findSlots,
-  type Interval,
-  type SlotPreferences
-} from "./scheduler-core.ts";
+  findSlots
+} from "./index.ts";
+import type { Interval, SlotPreferences } from "./types.ts";
 
 let pass = 0;
 let fail = 0;

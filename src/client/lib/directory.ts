@@ -1,5 +1,5 @@
 // =============================================================================
-// google-client.ts (browser only)
+// client/lib/directory (browser only)
 // ログインユーザー本人の OAuth アクセストークンを Google Identity Services で取得し、
 // People API のディレクトリ検索（同僚オートコンプリート）をブラウザから直接行う。
 // トークンはメモリ保持のみ。サーバには渡さない。
