@@ -5,19 +5,25 @@ Cloudflare Agents + Google Calendar FreeBusy API で動く。
 
 ## プロジェクト構成
 
+ランタイム境界で 3 つに分割している。各ディレクトリは `index.ts` を公開窓口とする。
+
 ```
 src/
-  server.ts              # ChatAgent（AIChatAgent ベース）＋ツール定義
-  app.tsx                # チャット UI（Kumo コンポーネント）
-  client.tsx             # React エントリポイント
-  styles.css             # Tailwind + Kumo スタイル
-  scheduler-core.ts      # 提案エンジン（空き時間の計算ロジック）
-  scheduler-core.test.ts # 区間ロジックの単体テスト（13件）
-index.html               # SPA エントリ
-wrangler.jsonc            # Workers / Durable Object 設定
-vite.config.ts            # Vite ビルド設定
+  shared/        # base64url など server / scheduler 共有のユーティリティ
+  scheduler/     # 提案エンジン（ランタイム非依存・テスト対象）
+                 #   intervals / timezone / windows / slots / freebusy /
+                 #   google-auth / suggest を index.ts のバレルで公開
+  server/        # Worker / Durable Object 側
+                 #   index.ts（エントリ）/ chat-agent / prompt /
+                 #   tools/*（ツール定義）/ auth/*（OAuth・セッション）
+  client/        # ブラウザ / React 側
+                 #   index.tsx / App.tsx / components/* / hooks/* / lib/*
+index.html       # SPA エントリ
+env.secrets.d.ts # Secrets の Env 型補完（wrangler types 再生成で消えない）
+wrangler.jsonc   # Workers / Durable Object 設定
+vite.config.ts   # Vite ビルド設定
 workflows/
-  sanity-check.yml        # CI（push/PR → pnpm install & check）
+  sanity-check.yml # CI（push/PR → pnpm install & check）
 ```
 
 ## セットアップ
@@ -37,7 +43,7 @@ http://localhost:5173 でチャット UI が開く。
 ## テスト
 
 ```bash
-pnpm exec tsx src/scheduler-core.test.ts   # 区間ロジックの単体テスト（13件）
+pnpm exec tsx src/scheduler/intervals.test.ts   # 区間ロジックの単体テスト（13件）
 ```
 
 ## デプロイ
