@@ -54,8 +54,7 @@ index.html                # SPA エントリ（/src/client/index.tsx を読む�
 env.secrets.d.ts          # Secrets（wrangler types で消えない Env 型補完）
 wrangler.jsonc            # Workers / Durable Object 設定
 vite.config.ts            # Vite ビルド設定
-workflows/
-  sanity-check.yml        # CI（push/PR → npm install & check）
+                          # デプロイは Cloudflare Workers Builds（Git 連携）で自動実行
 ```
 
 - `src/scheduler/` … 提案エンジン。**実装済み・テスト済み**。公開 API は `index.ts` 経由。
@@ -92,7 +91,7 @@ workflows/
 - 開発サーバ: `pnpm dev`
 - コアのテスト: `pnpm exec tsx src/scheduler/intervals.test.ts`
 - lint / format / 型チェック: `pnpm check`
-- デプロイ: `pnpm deploy`（= `vite build && wrangler deploy`）
+- デプロイ: main push で Cloudflare Workers Builds が自動実行。手動: `pnpm deploy`（= `wrangler deploy`、`build.command` で vite build が先行）
 
 ## 参照リンク
 
