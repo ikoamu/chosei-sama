@@ -65,29 +65,35 @@ export function calendarTools(agent: ChatAgent, env: Env) {
         preferredEndHour
       }) => {
         if (!agent.userEmail) {
-          return { message: NO_SUBJECT };
+          return { error: NO_SUBJECT };
         }
-        const candidates = await suggestSlots({
-          serviceAccount: loadServiceAccount(env),
-          subject: agent.userEmail,
-          calendarIds: members,
-          timeMin: new Date(timeMin),
-          timeMax: new Date(timeMax),
-          preferences: {
-            durationMinutes,
-            timeZone,
-            preferredWindow: toPreferredWindow(
-              preferredStartHour,
-              preferredEndHour
-            )
+        try {
+          const candidates = await suggestSlots({
+            serviceAccount: loadServiceAccount(env),
+            subject: agent.userEmail,
+            calendarIds: members,
+            timeMin: new Date(timeMin),
+            timeMax: new Date(timeMax),
+            preferences: {
+              durationMinutes,
+              timeZone,
+              preferredWindow: toPreferredWindow(
+                preferredStartHour,
+                preferredEndHour
+              )
+            }
+          });
+          if (candidates.length === 0) {
+            return {
+              message: "指定期間内に全員が空いている枠が見つかりませんでした。"
+            };
           }
-        });
-        if (candidates.length === 0) {
-          return {
-            message: "指定期間内に全員が空いている枠が見つかりませんでした。"
-          };
+          return { candidates };
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          console.error("[suggestSlots] failed:", msg);
+          return { error: msg };
         }
-        return { candidates };
       }
     }),
 
@@ -144,31 +150,37 @@ export function calendarTools(agent: ChatAgent, env: Env) {
         preferredEndHour
       }) => {
         if (!agent.userEmail) {
-          return { message: NO_SUBJECT };
+          return { error: NO_SUBJECT };
         }
-        const candidates = await suggestRecurringSlots({
-          serviceAccount: loadServiceAccount(env),
-          subject: agent.userEmail,
-          calendarIds: members,
-          firstDate: new Date(firstDate),
-          occurrences,
-          everyNWeeks,
-          preferences: {
-            durationMinutes,
-            timeZone,
-            preferredWindow: toPreferredWindow(
-              preferredStartHour,
-              preferredEndHour
-            )
+        try {
+          const candidates = await suggestRecurringSlots({
+            serviceAccount: loadServiceAccount(env),
+            subject: agent.userEmail,
+            calendarIds: members,
+            firstDate: new Date(firstDate),
+            occurrences,
+            everyNWeeks,
+            preferences: {
+              durationMinutes,
+              timeZone,
+              preferredWindow: toPreferredWindow(
+                preferredStartHour,
+                preferredEndHour
+              )
+            }
+          });
+          if (candidates.length === 0) {
+            return {
+              message:
+                "指定条件で全オカレンス空いている枠が見つかりませんでした。"
+            };
           }
-        });
-        if (candidates.length === 0) {
-          return {
-            message:
-              "指定条件で全オカレンス空いている枠が見つかりませんでした。"
-          };
+          return { candidates };
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          console.error("[suggestRecurringSlots] failed:", msg);
+          return { error: msg };
         }
-        return { candidates };
       }
     })
   };
