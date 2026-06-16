@@ -151,7 +151,6 @@ export function Chat({ user }: { user: AuthUser }) {
               title="調整を始める"
               contents={
                 <ParticipantPicker
-                  clientId={user.clientId}
                   selfEmail={user.email}
                   disabled={!connected || isStreaming}
                   onStart={startWithParticipants}

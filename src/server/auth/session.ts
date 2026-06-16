@@ -10,6 +10,8 @@ export interface UserSession {
   name: string;
   picture: string;
   domain: string;
+  /** ディレクトリ参照用 refresh_token（People API トークン更新に使用）。 */
+  refreshToken: string;
   exp: number;
 }
 

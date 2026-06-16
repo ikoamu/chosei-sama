@@ -1,7 +1,7 @@
 // =============================================================================
 // client/components/ParticipantPicker
 // 参加者を選ぶディレクトリ・オートコンプリート。
-// ブラウザのトークンで People API を直接叩き、選んだ参加者で調整を開始する。
+// サーバーが refresh_token で発行した access_token で People API を直接叩く。
 // =============================================================================
 
 import { useEffect, useRef, useState } from "react";
@@ -13,25 +13,22 @@ import {
   XIcon
 } from "@phosphor-icons/react";
 import {
-  getGoogleToken,
+  fetchDirectoryToken,
   searchDirectory,
   type DirectoryPerson
 } from "../lib/directory";
 
 export function ParticipantPicker({
-  clientId,
   selfEmail,
   disabled,
   onStart
 }: {
-  clientId: string;
   selfEmail: string;
   disabled: boolean;
   onStart: (people: DirectoryPerson[]) => void;
 }) {
   const [token, setToken] = useState<string | null>(null);
-  const [connecting, setConnecting] = useState(false);
-  const [needsConsent, setNeedsConsent] = useState(false);
+  const [tokenError, setTokenError] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<DirectoryPerson[]>([]);
   const [selected, setSelected] = useState<DirectoryPerson[]>([]);
@@ -39,25 +36,13 @@ export function ParticipantPicker({
   const [open, setOpen] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
 
-  // ログイン時に directory スコープへ同意済みなら、ポップアップ無しでトークンを引き当てる。
+  // マウント時にサーバーからディレクトリ参照用トークンを取得。
+  // ポップアップ等は発生しない（サーバーが refresh_token で更新する）。
   useEffect(() => {
-    getGoogleToken(clientId, { silent: true })
+    fetchDirectoryToken()
       .then(setToken)
-      .catch(() => setNeedsConsent(true));
-  }, [clientId]);
-
-  // サイレント取得に失敗した場合のみ、操作起点で明示的に取得する。
-  const connect = async () => {
-    setConnecting(true);
-    try {
-      setToken(await getGoogleToken(clientId));
-      setNeedsConsent(false);
-    } catch (e) {
-      console.error("Google 接続に失敗:", e);
-    } finally {
-      setConnecting(false);
-    }
-  };
+      .catch(() => setTokenError(true));
+  }, []);
 
   // Debounced directory search (uses the user's own token, direct to Google)
   useEffect(() => {
@@ -72,7 +57,16 @@ export function ParticipantPicker({
         setResults(await searchDirectory(token, q));
         setOpen(true);
       } catch {
-        setResults([]);
+        // トークン期限切れの可能性があるため再取得を試みる
+        try {
+          const newToken = await fetchDirectoryToken();
+          setToken(newToken);
+          setResults(await searchDirectory(newToken, q));
+          setOpen(true);
+        } catch {
+          setResults([]);
+          setTokenError(true);
+        }
       } finally {
         setLoading(false);
       }
@@ -120,19 +114,26 @@ export function ParticipantPicker({
         </Text>
       </div>
 
-      {!token && needsConsent && (
+      {tokenError && (
         <div className="flex flex-col items-center gap-2">
           <Text size="xs" variant="secondary">
-            同僚検索の利用には Google の追加許可が必要です
+            同僚検索の接続に失敗しました。再ログインしてください。
           </Text>
-          <Button variant="secondary" disabled={connecting} onClick={connect}>
-            {connecting ? "許可を確認中…" : "Google で許可する"}
+          <Button
+            variant="secondary"
+            onClick={() => {
+              window.location.href = "/oauth/login";
+            }}
+          >
+            再ログイン
           </Button>
         </div>
       )}
 
-      {!token && !needsConsent && (
-        <p className="text-xs text-center text-kumo-subtle">準備中…</p>
+      {!token && !tokenError && (
+        <p className="text-xs text-center text-kumo-subtle">
+          ディレクトリに接続中…
+        </p>
       )}
 
       {/* Selected chips */}

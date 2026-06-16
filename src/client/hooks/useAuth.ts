@@ -19,7 +19,6 @@ export function useAuth() {
               email: string;
               name: string;
               picture: string;
-              clientId: string;
             }>)
           : null
       )
@@ -28,8 +27,7 @@ export function useAuth() {
           setUser({
             email: data.email,
             name: data.name,
-            picture: data.picture,
-            clientId: data.clientId
+            picture: data.picture
           });
         }
       })

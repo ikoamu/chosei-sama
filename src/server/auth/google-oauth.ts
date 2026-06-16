@@ -22,12 +22,14 @@ export function googleAuthUrl(
     client_id: clientId,
     redirect_uri: redirectUri,
     response_type: "code",
-    // ログインは身元確認のみ。ディレクトリ参照は client 側 GIS が
-    // directory.readonly を別途取得するため、ここでは要求しない。
-    scope: "openid email profile",
-    access_type: "online",
+    // 身元確認 + ディレクトリ参照（People API の同僚検索）を一度に同意させる。
+    scope:
+      "openid email profile https://www.googleapis.com/auth/directory.readonly",
+    // offline で refresh_token を取得し、セッション中は再ログイン不要にする。
+    access_type: "offline",
     hd: allowedDomain,
-    prompt: "select_account"
+    // consent を指定すると毎回 refresh_token が返る（select_account だと初回のみ）。
+    prompt: "consent"
   });
   return `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
 }
@@ -46,14 +48,19 @@ function decodeIdToken(jwt: string): IdTokenClaims {
   );
 }
 
+export interface ExchangeSuccess {
+  email: string;
+  name: string;
+  picture: string;
+  domain: string;
+  refreshToken: string;
+}
+
 export async function exchangeCodeForUser(
   code: string,
   redirectUri: string,
   config: OAuthConfig
-): Promise<
-  | { email: string; name: string; picture: string; domain: string }
-  | { error: string }
-> {
+): Promise<ExchangeSuccess | { error: string }> {
   const res = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -68,7 +75,10 @@ export async function exchangeCodeForUser(
   if (!res.ok) {
     return { error: `Token exchange failed: ${res.status}` };
   }
-  const tokens = (await res.json()) as { id_token: string };
+  const tokens = (await res.json()) as {
+    id_token: string;
+    refresh_token?: string;
+  };
   const claims = decodeIdToken(tokens.id_token);
 
   if (!claims.email_verified) {
@@ -77,10 +87,40 @@ export async function exchangeCodeForUser(
   if (claims.hd !== config.allowedDomain) {
     return { error: `${claims.hd || "unknown"} is not allowed` };
   }
+  if (!tokens.refresh_token) {
+    return { error: "No refresh token received" };
+  }
   return {
     email: claims.email,
     name: claims.name,
     picture: claims.picture,
-    domain: claims.hd
+    domain: claims.hd,
+    refreshToken: tokens.refresh_token
   };
+}
+
+/** refresh_token → 短命 access_token を発行する。 */
+export async function refreshAccessToken(
+  refreshToken: string,
+  clientId: string,
+  clientSecret: string
+): Promise<{ accessToken: string; expiresIn: number } | null> {
+  const res = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "refresh_token",
+      refresh_token: refreshToken,
+      client_id: clientId,
+      client_secret: clientSecret
+    })
+  });
+  if (!res.ok) {
+    return null;
+  }
+  const data = (await res.json()) as {
+    access_token: string;
+    expires_in: number;
+  };
+  return { accessToken: data.access_token, expiresIn: data.expires_in };
 }

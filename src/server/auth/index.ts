@@ -1,7 +1,8 @@
 // =============================================================================
 // server/auth
 // OAuth ルート（/oauth/*）のハンドラ。ログイン・コールバック・現在ユーザー照会・
-// ログアウトを束ねる。セッション検証 verifySession もここから再エクスポートする。
+// ログアウト・ディレクトリトークンの更新を束ねる。
+// セッション検証 verifySession もここから再エクスポートする。
 // =============================================================================
 
 import {
@@ -12,6 +13,7 @@ import {
 import {
   exchangeCodeForUser,
   googleAuthUrl,
+  refreshAccessToken,
   type OAuthConfig
 } from "./google-oauth";
 
@@ -46,7 +48,10 @@ export async function handleOAuthRoute(
       return handleCallback(url, redirectUri, config);
 
     case "/oauth/me":
-      return handleMe(request, config.cookieSecret, config.clientId);
+      return handleMe(request, config.cookieSecret);
+
+    case "/oauth/directory-token":
+      return handleDirectoryToken(request, config);
 
     case "/oauth/logout":
       return new Response(null, {
@@ -74,7 +79,16 @@ async function handleCallback(
     dest.searchParams.set("error", result.error);
     return Response.redirect(dest.toString(), 302);
   }
-  const cookie = await createSessionCookie(result, config.cookieSecret);
+  const cookie = await createSessionCookie(
+    {
+      email: result.email,
+      name: result.name,
+      picture: result.picture,
+      domain: result.domain,
+      refreshToken: result.refreshToken
+    },
+    config.cookieSecret
+  );
   return new Response(null, {
     status: 302,
     headers: { Location: "/", "Set-Cookie": cookie }
@@ -83,8 +97,7 @@ async function handleCallback(
 
 async function handleMe(
   request: Request,
-  cookieSecret: string,
-  clientId: string
+  cookieSecret: string
 ): Promise<Response> {
   const session = await verifySession(
     request.headers.get("Cookie"),
@@ -97,7 +110,35 @@ async function handleMe(
     authenticated: true,
     email: session.email,
     name: session.name,
-    picture: session.picture,
-    clientId
+    picture: session.picture
+  });
+}
+
+/**
+ * セッション中の refresh_token を使って短命の access_token を発行する。
+ * クライアントはこのトークンで People API を直接叩く。
+ */
+async function handleDirectoryToken(
+  request: Request,
+  config: OAuthConfig
+): Promise<Response> {
+  const session = await verifySession(
+    request.headers.get("Cookie"),
+    config.cookieSecret
+  );
+  if (!session) {
+    return Response.json({ error: "not authenticated" }, { status: 401 });
+  }
+  const result = await refreshAccessToken(
+    session.refreshToken,
+    config.clientId,
+    config.clientSecret
+  );
+  if (!result) {
+    return Response.json({ error: "token refresh failed" }, { status: 502 });
+  }
+  return Response.json({
+    accessToken: result.accessToken,
+    expiresIn: result.expiresIn
   });
 }
