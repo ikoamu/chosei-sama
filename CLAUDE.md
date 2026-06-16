@@ -91,7 +91,7 @@ vite.config.ts            # Vite ビルド設定
 - 開発サーバ: `pnpm dev`
 - コアのテスト: `pnpm exec tsx src/scheduler/intervals.test.ts`
 - lint / format / 型チェック: `pnpm check`
-- デプロイ: main push で Cloudflare Workers Builds が自動実行。手動: `pnpm deploy`（= `wrangler deploy`、`build.command` で vite build が先行）
+- デプロイ: main push で Cloudflare Workers Builds が自動実行。手動: `pnpm deploy`（= `vite build && wrangler deploy`）
 
 ## 参照リンク
 

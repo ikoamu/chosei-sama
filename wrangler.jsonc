@@ -2,7 +2,6 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "chosei-sama",
   "main": "src/server/index.ts",
-  "build": { "command": "vite build" },
   "compatibility_date": "2026-03-02",
   "compatibility_flags": ["nodejs_compat"],
   "ai": { "binding": "AI", "remote": true },
