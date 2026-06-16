@@ -12,10 +12,14 @@ import {
   convertToModelMessages,
   pruneMessages,
   stepCountIs,
-  streamText
+  streamText,
+  wrapLanguageModel
 } from "ai";
 import { buildSystemPrompt } from "./prompt";
 import { buildTools } from "./tools";
+
+const PRIMARY_MODEL = "@cf/moonshotai/kimi-k2.6";
+const FALLBACK_MODEL = "@cf/meta/llama-4-scout-17b-16e-instruct";
 
 export class ChatAgent extends AIChatAgent<Env> {
   maxPersistedMessages = 100;
@@ -58,11 +62,33 @@ export class ChatAgent extends AIChatAgent<Env> {
   async onChatMessage(_onFinish: unknown, options?: OnChatMessageOptions) {
     const mcpTools = this.mcp.getAITools();
     const workersai = createWorkersAI({ binding: this.env.AI });
+    const affinity = { sessionAffinity: this.sessionAffinity };
+
+    // primary が capacity エラー等で失敗したら fallback に切り替える
+    const fallback = workersai(FALLBACK_MODEL, affinity);
+    const model = wrapLanguageModel({
+      model: workersai(PRIMARY_MODEL, affinity),
+      middleware: {
+        specificationVersion: "v3" as const,
+        wrapGenerate: async ({ doGenerate, params }) => {
+          try {
+            return await doGenerate();
+          } catch {
+            return await fallback.doGenerate(params);
+          }
+        },
+        wrapStream: async ({ doStream, params }) => {
+          try {
+            return await doStream();
+          } catch {
+            return await fallback.doStream(params);
+          }
+        }
+      }
+    });
 
     const result = streamText({
-      model: workersai("@cf/moonshotai/kimi-k2.6", {
-        sessionAffinity: this.sessionAffinity
-      }),
+      model,
       system: buildSystemPrompt(this.userEmail),
       messages: pruneMessages({
         messages: await convertToModelMessages(this.messages),
@@ -76,7 +102,16 @@ export class ChatAgent extends AIChatAgent<Env> {
       abortSignal: options?.abortSignal
     });
 
-    return result.toUIMessageStreamResponse();
+    return result.toUIMessageStreamResponse({
+      onError: (error) => {
+        const msg =
+          error instanceof Error
+            ? `${error.name}: ${error.message}`
+            : String(error);
+        console.error("[ChatAgent] stream error:", msg);
+        return msg;
+      }
+    });
   }
 
   async executeTask(description: string, _task: Schedule<string>) {
