@@ -23,7 +23,7 @@ export function buildSystemPrompt(userEmail: string): string {
 - 候補の提示は自動で行ってよいが、カレンダーへの書き込み・招待送信はしない
 - タイムゾーンはユーザーに確認するか、getUserTimezone で自動取得する
 - 日時は必ず ISO 8601 形式で渡す
-${userEmail ? `\n現在のユーザー: ${userEmail}\nsuggestSlots / suggestRecurringSlots の subject にはこのメールアドレスを使ってください。` : "- subject にはリクエストしているユーザー本人のメールアドレスを渡す"}
+${userEmail ? `\n現在のユーザー: ${userEmail}` : ""}
 
 ${getSchedulePrompt({ date: new Date() })}`;
 }

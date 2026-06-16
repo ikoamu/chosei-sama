@@ -19,7 +19,9 @@ import { buildTools } from "./tools";
 
 export class ChatAgent extends AIChatAgent<Env> {
   maxPersistedMessages = 100;
-  private userEmail = "";
+  // 認証済みリクエスト者のメール。ドメイン委任の subject（誰として読むか）の
+  // 唯一の出所。接続時に client から一度だけセットされ、ツールはここを参照する。
+  userEmail = "";
 
   @callable()
   setUserEmail(email: string) {

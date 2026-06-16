@@ -10,7 +10,7 @@ import { taskTools } from "./task-tools";
 
 export function buildTools(agent: ChatAgent, env: Env) {
   return {
-    ...calendarTools(env),
+    ...calendarTools(agent, env),
     ...taskTools(agent)
   };
 }

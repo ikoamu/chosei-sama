@@ -7,6 +7,7 @@
 import { tool } from "ai";
 import { z } from "zod";
 import { suggestRecurringSlots, suggestSlots } from "../../scheduler";
+import type { ChatAgent } from "../chat-agent";
 import { loadServiceAccount } from "../service-account";
 
 /** preferredStartHour / preferredEndHour の両方が揃ったときだけ希望帯にする。 */
@@ -16,7 +17,10 @@ function toPreferredWindow(startHour?: number, endHour?: number) {
     : undefined;
 }
 
-export function calendarTools(env: Env) {
+const NO_SUBJECT =
+  "ログインユーザーが未確定のため、カレンダーを照会できません。再ログインしてください。";
+
+export function calendarTools(agent: ChatAgent, env: Env) {
   return {
     suggestSlots: tool({
       description:
@@ -25,11 +29,6 @@ export function calendarTools(env: Env) {
         members: z
           .array(z.string())
           .describe("参加者全員のメールアドレス（カレンダーID）"),
-        subject: z
-          .string()
-          .describe(
-            "リクエストしているユーザーのメールアドレス（ドメイン委任の subject）"
-          ),
         durationMinutes: z
           .number()
           .int()
@@ -58,7 +57,6 @@ export function calendarTools(env: Env) {
       }),
       execute: async ({
         members,
-        subject,
         durationMinutes,
         timeMin,
         timeMax,
@@ -66,9 +64,12 @@ export function calendarTools(env: Env) {
         preferredStartHour,
         preferredEndHour
       }) => {
+        if (!agent.userEmail) {
+          return { message: NO_SUBJECT };
+        }
         const candidates = await suggestSlots({
           serviceAccount: loadServiceAccount(env),
-          subject,
+          subject: agent.userEmail,
           calendarIds: members,
           timeMin: new Date(timeMin),
           timeMax: new Date(timeMax),
@@ -95,9 +96,6 @@ export function calendarTools(env: Env) {
         "定期開催のミーティングで、全オカレンスにわたり全員が空いている曜日・時間帯を検索する",
       inputSchema: z.object({
         members: z.array(z.string()).describe("参加者全員のメールアドレス"),
-        subject: z
-          .string()
-          .describe("リクエストしているユーザーのメールアドレス"),
         durationMinutes: z
           .number()
           .int()
@@ -137,7 +135,6 @@ export function calendarTools(env: Env) {
       }),
       execute: async ({
         members,
-        subject,
         durationMinutes,
         firstDate,
         occurrences,
@@ -146,9 +143,12 @@ export function calendarTools(env: Env) {
         preferredStartHour,
         preferredEndHour
       }) => {
+        if (!agent.userEmail) {
+          return { message: NO_SUBJECT };
+        }
         const candidates = await suggestRecurringSlots({
           serviceAccount: loadServiceAccount(env),
-          subject,
+          subject: agent.userEmail,
           calendarIds: members,
           firstDate: new Date(firstDate),
           occurrences,

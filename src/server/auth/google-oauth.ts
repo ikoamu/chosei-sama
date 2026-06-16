@@ -22,8 +22,9 @@ export function googleAuthUrl(
     client_id: clientId,
     redirect_uri: redirectUri,
     response_type: "code",
-    scope:
-      "openid email profile https://www.googleapis.com/auth/directory.readonly",
+    // ログインは身元確認のみ。ディレクトリ参照は client 側 GIS が
+    // directory.readonly を別途取得するため、ここでは要求しない。
+    scope: "openid email profile",
     access_type: "online",
     hd: allowedDomain,
     prompt: "select_account"
