@@ -10,9 +10,11 @@ import { useAgentChat } from "@cloudflare/ai-chat/react";
 import { Button, Empty, InputArea } from "@cloudflare/kumo";
 import { useKumoToastManager } from "@cloudflare/kumo/components/toast";
 import {
+  ArrowClockwiseIcon,
   ChatCircleDotsIcon,
   PaperPlaneRightIcon,
-  StopIcon
+  StopIcon,
+  WarningCircleIcon
 } from "@phosphor-icons/react";
 import { useChatSubmit } from "use-chat-submit";
 import type { ChatAgent } from "../../server/chat-agent";
@@ -69,7 +71,8 @@ export function Chat({ user }: { user: AuthUser }) {
     clearHistory,
     addToolApprovalResponse,
     stop,
-    status
+    status,
+    error
   } = useAgentChat({
     agent,
     onToolCall: async (event) => {
@@ -165,6 +168,63 @@ export function Chat({ user }: { user: AuthUser }) {
             isStreaming={isStreaming}
             addToolApprovalResponse={addToolApprovalResponse}
           />
+
+          {/* Thinking indicator — visible after send, before first token */}
+          {status === "submitted" && (
+            <div className="flex justify-start">
+              <div className="flex items-center gap-2 px-4 py-2.5 rounded-2xl rounded-bl-md bg-kumo-base text-kumo-subtle text-sm">
+                <span className="thinking-dots flex gap-0.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-current animate-[dot-bounce_1.4s_ease-in-out_infinite]" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-current animate-[dot-bounce_1.4s_ease-in-out_0.2s_infinite]" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-current animate-[dot-bounce_1.4s_ease-in-out_0.4s_infinite]" />
+                </span>
+                考え中…
+              </div>
+            </div>
+          )}
+
+          {/* Error banner with retry */}
+          {status === "error" && error && (
+            <div className="flex justify-start">
+              <div className="max-w-[85%] flex items-start gap-2.5 px-4 py-3 rounded-2xl rounded-bl-md bg-red-500/10 border border-red-500/20 text-sm">
+                <WarningCircleIcon
+                  size={18}
+                  className="text-red-500 shrink-0 mt-0.5"
+                />
+                <div className="min-w-0 space-y-2">
+                  <p className="text-kumo-default">
+                    エラーが発生しました。もう一度お試しください。
+                  </p>
+                  <p className="text-xs text-kumo-subtle break-all">
+                    {error.message}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const lastUser = [...messages]
+                        .reverse()
+                        .find((m) => m.role === "user");
+                      if (lastUser) {
+                        const textPart = lastUser.parts.find(
+                          (p) => p.type === "text"
+                        );
+                        if (textPart && "text" in textPart) {
+                          sendMessage({
+                            role: "user",
+                            parts: [{ type: "text", text: textPart.text }]
+                          });
+                        }
+                      }
+                    }}
+                    className="inline-flex items-center gap-1.5 text-xs font-medium text-red-500 hover:text-red-600 transition-colors"
+                  >
+                    <ArrowClockwiseIcon size={14} />
+                    リトライ
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div ref={messagesEndRef} />
         </div>
