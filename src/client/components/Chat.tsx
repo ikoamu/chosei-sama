@@ -20,6 +20,7 @@ import { useChatSubmit } from "use-chat-submit";
 import type { ChatAgent } from "../../server/chat-agent";
 import type { AuthUser } from "../types";
 import type { DirectoryPerson } from "../lib/directory";
+import { buildScheduleMessage } from "../lib/participants";
 import { ChatHeader } from "./ChatHeader";
 import { MessageList } from "./MessageList";
 import { ParticipantPicker } from "./ParticipantPicker";
@@ -121,18 +122,17 @@ export function Chat({ user }: { user: AuthUser }) {
 
   const startWithParticipants = useCallback(
     (people: DirectoryPerson[]) => {
-      const list = people.map((p) => `${p.name} <${p.email}>`).join("、");
       sendMessage({
         role: "user",
         parts: [
           {
             type: "text",
-            text: `参加者は ${list} です。全員の空き時間を調整したいので、空いている時間を提案してください。`
+            text: buildScheduleMessage(people, user)
           }
         ]
       });
     },
-    [sendMessage]
+    [sendMessage, user]
   );
 
   return (
@@ -154,7 +154,7 @@ export function Chat({ user }: { user: AuthUser }) {
               title="調整を始める"
               contents={
                 <ParticipantPicker
-                  selfEmail={user.email}
+                  self={user}
                   disabled={!connected || isStreaming}
                   onStart={startWithParticipants}
                 />
