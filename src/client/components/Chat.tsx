@@ -20,7 +20,10 @@ import { useChatSubmit } from "use-chat-submit";
 import type { ChatAgent } from "../../server/chat-agent";
 import type { AuthUser } from "../types";
 import type { DirectoryPerson } from "../lib/directory";
-import { buildScheduleMessage } from "../lib/participants";
+import {
+  buildScheduleMessage,
+  type ScheduleOptions
+} from "../lib/participants";
 import { ChatHeader } from "./ChatHeader";
 import { MessageList } from "./MessageList";
 import { ParticipantPicker } from "./ParticipantPicker";
@@ -121,13 +124,13 @@ export function Chat({ user }: { user: AuthUser }) {
   }, [isStreaming, textareaRef]);
 
   const startWithParticipants = useCallback(
-    (people: DirectoryPerson[]) => {
+    (people: DirectoryPerson[], options: ScheduleOptions) => {
       sendMessage({
         role: "user",
         parts: [
           {
             type: "text",
-            text: buildScheduleMessage(people, user)
+            text: buildScheduleMessage(people, user, options)
           }
         ]
       });
@@ -230,55 +233,57 @@ export function Chat({ user }: { user: AuthUser }) {
         </div>
       </div>
 
-      {/* Input */}
-      <div className="border-t border-kumo-line bg-kumo-base">
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            triggerSubmit();
-          }}
-          className="max-w-3xl mx-auto px-5 py-4"
-        >
-          <div className="flex items-end gap-3 rounded-xl border border-kumo-line bg-kumo-base p-3 shadow-sm focus-within:ring-2 focus-within:ring-kumo-ring focus-within:border-transparent transition-shadow">
-            <InputArea
-              {...getTextareaProps({
-                value: input,
-                onChange: (e) => {
-                  setInput(e.target.value);
-                  const el = e.target;
-                  el.style.height = "auto";
-                  el.style.height = `${el.scrollHeight}px`;
-                }
-              })}
-              placeholder="メッセージを入力…（Enterで改行／⌘・Ctrl+Enterで送信）"
-              disabled={!connected || isStreaming}
-              rows={1}
-              className="flex-1 ring-0! focus:ring-0! shadow-none! bg-transparent! outline-none! resize-none max-h-40"
-            />
-            {isStreaming ? (
-              <Button
-                type="button"
-                variant="secondary"
-                shape="square"
-                aria-label="Stop generation"
-                icon={<StopIcon size={18} />}
-                onClick={stop}
-                className="mb-0.5"
+      {/* Input — 初回は参加者ピッカーが入力口になるため下部欄は隠す */}
+      {messages.length > 0 && (
+        <div className="border-t border-kumo-line bg-kumo-base">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              triggerSubmit();
+            }}
+            className="max-w-3xl mx-auto px-5 py-4"
+          >
+            <div className="flex items-end gap-3 rounded-xl border border-kumo-line bg-kumo-base p-3 shadow-sm focus-within:ring-2 focus-within:ring-kumo-ring focus-within:border-transparent transition-shadow">
+              <InputArea
+                {...getTextareaProps({
+                  value: input,
+                  onChange: (e) => {
+                    setInput(e.target.value);
+                    const el = e.target;
+                    el.style.height = "auto";
+                    el.style.height = `${el.scrollHeight}px`;
+                  }
+                })}
+                placeholder="メッセージを入力…（Enterで改行／⌘・Ctrl+Enterで送信）"
+                disabled={!connected || isStreaming}
+                rows={1}
+                className="flex-1 ring-0! focus:ring-0! shadow-none! bg-transparent! outline-none! resize-none max-h-40"
               />
-            ) : (
-              <Button
-                type="submit"
-                variant="primary"
-                shape="square"
-                aria-label="Send message"
-                disabled={!input.trim() || !connected}
-                icon={<PaperPlaneRightIcon size={18} />}
-                className="mb-0.5"
-              />
-            )}
-          </div>
-        </form>
-      </div>
+              {isStreaming ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  shape="square"
+                  aria-label="Stop generation"
+                  icon={<StopIcon size={18} />}
+                  onClick={stop}
+                  className="mb-0.5"
+                />
+              ) : (
+                <Button
+                  type="submit"
+                  variant="primary"
+                  shape="square"
+                  aria-label="Send message"
+                  disabled={!input.trim() || !connected}
+                  icon={<PaperPlaneRightIcon size={18} />}
+                  className="mb-0.5"
+                />
+              )}
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 }

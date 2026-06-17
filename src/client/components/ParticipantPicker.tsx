@@ -19,6 +19,12 @@ import {
   searchDirectory,
   type DirectoryPerson
 } from "../lib/directory";
+import type { ScheduleKind, ScheduleOptions } from "../lib/participants";
+
+const PLACEHOLDERS: Record<ScheduleKind, string> = {
+  single: "例: 1時間、来週中、午後希望",
+  recurring: "例: 隔週1h、来月から6回、午後希望"
+};
 
 export function ParticipantPicker({
   self,
@@ -27,7 +33,7 @@ export function ParticipantPicker({
 }: {
   self: AuthUser;
   disabled: boolean;
-  onStart: (people: DirectoryPerson[]) => void;
+  onStart: (people: DirectoryPerson[], options: ScheduleOptions) => void;
 }) {
   // ログインユーザー本人。同僚検索の候補には出ないため、参加者として扱える形に変換する。
   const selfPerson: DirectoryPerson = {
@@ -44,6 +50,9 @@ export function ParticipantPicker({
   const [selected, setSelected] = useState<DirectoryPerson[]>([selfPerson]);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
+  // 調整の種別（既定は定期）と希望条件のフリーテキスト。
+  const [kind, setKind] = useState<ScheduleKind>("recurring");
+  const [details, setDetails] = useState("");
   const boxRef = useRef<HTMLDivElement>(null);
 
   const selfSelected = selected.some((s) => s.email === self.email);
@@ -272,11 +281,48 @@ export function ParticipantPicker({
         </button>
       )}
 
+      {/* 種別トグル＋希望条件 */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-1 p-0.5 rounded-lg bg-kumo-control border border-kumo-line w-fit mx-auto">
+          {(["recurring", "single"] as const).map((k) => (
+            <button
+              key={k}
+              type="button"
+              onClick={() => setKind(k)}
+              disabled={disabled}
+              aria-pressed={kind === k}
+              className={`px-3 py-1 text-xs rounded-md transition-colors disabled:opacity-50 ${
+                kind === k
+                  ? "bg-kumo-base text-kumo-default shadow-sm"
+                  : "text-kumo-subtle hover:text-kumo-default"
+              }`}
+            >
+              {k === "recurring" ? "定期" : "単発"}
+            </button>
+          ))}
+        </div>
+
+        <label className="block">
+          <span className="block text-xs text-kumo-subtle mb-1">
+            どんな調整？（所要時間・期間など）
+          </span>
+          <textarea
+            value={details}
+            onChange={(e) => setDetails(e.target.value)}
+            disabled={disabled}
+            rows={2}
+            aria-label="調整の希望条件"
+            placeholder={PLACEHOLDERS[kind]}
+            className="w-full text-sm rounded-lg border border-kumo-line bg-kumo-base px-3 py-2 text-kumo-default placeholder:text-kumo-inactive focus:outline-none focus:ring-1 focus:ring-kumo-accent resize-none"
+          />
+        </label>
+      </div>
+
       <Button
         variant="primary"
         className="w-full"
         disabled={disabled || selected.length === 0}
-        onClick={() => onStart(selected)}
+        onClick={() => onStart(selected, { kind, details })}
       >
         この参加者で空き時間を探す
       </Button>
