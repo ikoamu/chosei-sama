@@ -98,3 +98,17 @@ vite.config.ts            # Vite ビルド設定
 - Cloudflare Agents: https://developers.cloudflare.com/agents/
 - Google Calendar API (FreeBusy): `freebusy.query`
 - Claude Code メモリ(CLAUDE.md): https://code.claude.com/docs/en/memory
+
+## エージェントスキル
+
+### イシュートラッカー
+
+イシューと PRD は `.scratch/<feature>/` 配下の Markdown ファイルとして管理する。詳細は `docs/agents/issue-tracker.md`。
+
+### トリアージラベル
+
+5つの正規トリアージ役割（needs-triage / needs-info / ready-for-agent / ready-for-human / wontfix）をデフォルト文字列で使用。詳細は `docs/agents/triage-labels.md`。
+
+### ドメインドキュメント
+
+シングルコンテキスト構成：リポジトリ直下に `CONTEXT.md` と `docs/adr/` を1つずつ（必要時に随時作成）。詳細は `docs/agents/domain.md`。

@@ -9,9 +9,11 @@ import { Button, Surface, Text } from "@cloudflare/kumo";
 import {
   MagnifyingGlassIcon,
   GearIcon,
+  PlusIcon,
   UsersIcon,
   XIcon
 } from "@phosphor-icons/react";
+import type { AuthUser } from "../types";
 import {
   fetchDirectoryToken,
   searchDirectory,
@@ -19,22 +21,32 @@ import {
 } from "../lib/directory";
 
 export function ParticipantPicker({
-  selfEmail,
+  self,
   disabled,
   onStart
 }: {
-  selfEmail: string;
+  self: AuthUser;
   disabled: boolean;
   onStart: (people: DirectoryPerson[]) => void;
 }) {
+  // ログインユーザー本人。同僚検索の候補には出ないため、参加者として扱える形に変換する。
+  const selfPerson: DirectoryPerson = {
+    name: self.name,
+    email: self.email,
+    photo: self.picture
+  };
+
   const [token, setToken] = useState<string | null>(null);
   const [tokenError, setTokenError] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<DirectoryPerson[]>([]);
-  const [selected, setSelected] = useState<DirectoryPerson[]>([]);
+  // 既定で自分を参加者に含める（✕ で除外可能）。
+  const [selected, setSelected] = useState<DirectoryPerson[]>([selfPerson]);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
+
+  const selfSelected = selected.some((s) => s.email === self.email);
 
   // マウント時にサーバーからディレクトリ参照用トークンを取得。
   // ポップアップ等は発生しない（サーバーが refresh_token で更新する）。
@@ -101,8 +113,19 @@ export function ParticipantPicker({
     setSelected((prev) => prev.filter((s) => s.email !== email));
   };
 
+  const addSelf = () => {
+    if (!selfSelected) {
+      setSelected((prev) => [selfPerson, ...prev]);
+    }
+  };
+
   const visibleResults = results.filter(
-    (p) => p.email !== selfEmail && !selected.some((s) => s.email === p.email)
+    (p) => p.email !== self.email && !selected.some((s) => s.email === p.email)
+  );
+
+  // 自分のチップは常に先頭に表示する。
+  const orderedSelected = [...selected].sort((a, b) =>
+    a.email === self.email ? -1 : b.email === self.email ? 1 : 0
   );
 
   return (
@@ -137,36 +160,44 @@ export function ParticipantPicker({
       )}
 
       {/* Selected chips */}
-      {selected.length > 0 && (
+      {orderedSelected.length > 0 && (
         <div className="flex flex-wrap gap-2 justify-center">
-          {selected.map((p) => (
-            <span
-              key={p.email}
-              className="inline-flex items-center gap-1.5 pl-1 pr-2 py-1 rounded-full bg-kumo-control border border-kumo-line"
-            >
-              {p.photo ? (
-                <img
-                  src={p.photo}
-                  alt={p.name}
-                  className="w-5 h-5 rounded-full"
-                  referrerPolicy="no-referrer"
-                />
-              ) : (
-                <span className="w-5 h-5 rounded-full bg-kumo-accent/20 flex items-center justify-center text-[10px] text-kumo-accent">
-                  {p.name.charAt(0)}
-                </span>
-              )}
-              <span className="text-xs text-kumo-default">{p.name}</span>
-              <button
-                type="button"
-                onClick={() => removePerson(p.email)}
-                aria-label={`${p.name} を削除`}
-                className="text-kumo-inactive hover:text-kumo-danger"
+          {orderedSelected.map((p) => {
+            const isSelf = p.email === self.email;
+            return (
+              <span
+                key={p.email}
+                className="inline-flex items-center gap-1.5 pl-1 pr-2 py-1 rounded-full bg-kumo-control border border-kumo-line"
               >
-                <XIcon size={12} />
-              </button>
-            </span>
-          ))}
+                {p.photo ? (
+                  <img
+                    src={p.photo}
+                    alt={p.name}
+                    className="w-5 h-5 rounded-full"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <span className="w-5 h-5 rounded-full bg-kumo-accent/20 flex items-center justify-center text-[10px] text-kumo-accent">
+                    {p.name.charAt(0)}
+                  </span>
+                )}
+                <span className="text-xs text-kumo-default">
+                  {p.name}
+                  {isSelf && (
+                    <span className="text-kumo-subtle">（あなた）</span>
+                  )}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => removePerson(p.email)}
+                  aria-label={`${p.name} を削除`}
+                  className="text-kumo-inactive hover:text-kumo-danger"
+                >
+                  <XIcon size={12} />
+                </button>
+              </span>
+            );
+          })}
         </div>
       )}
 
@@ -226,6 +257,19 @@ export function ParticipantPicker({
             </div>
           )}
         </div>
+      )}
+
+      {/* 自分を除外しているときだけ、再追加の導線を出す */}
+      {!selfSelected && (
+        <button
+          type="button"
+          onClick={addSelf}
+          disabled={disabled}
+          className="flex items-center gap-1.5 mx-auto text-xs text-kumo-subtle hover:text-kumo-accent transition-colors disabled:opacity-50"
+        >
+          <PlusIcon size={12} />
+          自分（{self.name}）を追加
+        </button>
       )}
 
       <Button
