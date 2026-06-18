@@ -8,11 +8,9 @@
 import type {
   Interval,
   RecurringCandidate,
-  ServiceAccount,
   SlotCandidate,
   SlotPreferences
 } from "./types";
-import { getAccessToken } from "./google-auth";
 import { queryFreeBusy } from "./freebusy";
 import { mergeIntervals, overlaps } from "./intervals";
 import { localParts, startOfLocalDay, zonedWallToUtc } from "./timezone";
@@ -25,38 +23,46 @@ import { commonFree, findSlots, scoreSlot } from "./slots";
 // ---------------------------------------------------------------------------
 
 export interface SuggestSlotsOptions {
-  serviceAccount: ServiceAccount;
-  subject: string; // 成り代わるユーザー（通常は依頼者本人）
+  accessToken: string; // 依頼者の OAuth アクセストークン
   calendarIds: string[]; // 参加者全員のカレンダー ID（=メールアドレス）
   timeMin: Date | number;
   timeMax: Date | number;
   preferences: SlotPreferences;
 }
 
+export interface SuggestSlotsResult {
+  candidates: SlotCandidate[];
+  /** free/busy を読めなかった参加者（カレンダー ID）。空でなければ候補は出さない。 */
+  unreadable: string[];
+}
+
 export async function suggestSlots(
   opts: SuggestSlotsOptions
-): Promise<SlotCandidate[]> {
+): Promise<SuggestSlotsResult> {
   const tMin =
     typeof opts.timeMin === "number" ? opts.timeMin : opts.timeMin.getTime();
   const tMax =
     typeof opts.timeMax === "number" ? opts.timeMax : opts.timeMax.getTime();
 
-  const token = await getAccessToken(opts.serviceAccount, opts.subject);
-  const busyMap = await queryFreeBusy(
-    token,
+  const { busy, unreadable } = await queryFreeBusy(
+    opts.accessToken,
     opts.calendarIds,
     tMin,
     tMax,
     opts.preferences.timeZone
   );
+  // 1人でも読めなければ「全員空いている」を保証できないため候補を出さない。
+  if (unreadable.length > 0) {
+    return { candidates: [], unreadable };
+  }
 
   const windows = workingWindowsInRange(tMin, tMax, opts.preferences);
   const free = commonFree(
-    [...busyMap.values()],
+    [...busy.values()],
     windows,
     (opts.preferences.bufferMinutes ?? 0) * 60_000
   );
-  return findSlots(free, opts.preferences);
+  return { candidates: findSlots(free, opts.preferences), unreadable: [] };
 }
 
 // ---------------------------------------------------------------------------
@@ -66,8 +72,7 @@ export async function suggestSlots(
 // ---------------------------------------------------------------------------
 
 export interface SuggestRecurringOptions {
-  serviceAccount: ServiceAccount;
-  subject: string;
+  accessToken: string; // 依頼者の OAuth アクセストークン
   calendarIds: string[];
   firstDate: Date | number; // この日以降の最初の該当曜日から開始
   occurrences: number; // 検証する開催回数（例: 6）
@@ -75,9 +80,15 @@ export interface SuggestRecurringOptions {
   preferences: SlotPreferences;
 }
 
+export interface SuggestRecurringResult {
+  candidates: RecurringCandidate[];
+  /** free/busy を読めなかった参加者（カレンダー ID）。空でなければ候補は出さない。 */
+  unreadable: string[];
+}
+
 export async function suggestRecurringSlots(
   opts: SuggestRecurringOptions
-): Promise<RecurringCandidate[]> {
+): Promise<SuggestRecurringResult> {
   const prefs = opts.preferences;
   const tz = prefs.timeZone;
   const first =
@@ -88,15 +99,17 @@ export async function suggestRecurringSlots(
   // 全オカレンスを覆う期間を一度に照会する。
   const horizonEnd = first + (opts.occurrences * opts.everyNWeeks + 1) * WEEK;
 
-  const token = await getAccessToken(opts.serviceAccount, opts.subject);
-  const busyMap = await queryFreeBusy(
-    token,
+  const { busy, unreadable } = await queryFreeBusy(
+    opts.accessToken,
     opts.calendarIds,
     first,
     horizonEnd,
     tz
   );
-  const mergedBusy = mergeIntervals([...busyMap.values()].flat());
+  if (unreadable.length > 0) {
+    return { candidates: [], unreadable };
+  }
+  const mergedBusy = mergeIntervals([...busy.values()].flat());
 
   const wh = prefs.workingHours ?? { startHour: 9, endHour: 18 };
   const allowed = prefs.allowedWeekdays ?? [1, 2, 3, 4, 5];
@@ -171,5 +184,8 @@ export async function suggestRecurringSlots(
       a.weekday - b.weekday ||
       a.localTime.localeCompare(b.localTime)
   );
-  return results.slice(0, prefs.maxResults ?? 5);
+  return {
+    candidates: results.slice(0, prefs.maxResults ?? 5),
+    unreadable: []
+  };
 }

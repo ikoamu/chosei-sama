@@ -9,7 +9,6 @@
 // =============================================================================
 
 interface Env {
-  GOOGLE_SA_KEY: string;
   GOOGLE_CLIENT_ID: string;
   GOOGLE_CLIENT_SECRET: string;
   ALLOWED_DOMAIN: string;

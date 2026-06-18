@@ -20,7 +20,7 @@ import {
   streamText,
   wrapLanguageModel
 } from "ai";
-import { verifySession } from "./auth";
+import { refreshAccessToken, verifySession } from "./auth";
 import { buildSystemPrompt } from "./prompt";
 import { buildTools } from "./tools";
 
@@ -46,9 +46,32 @@ export class ChatAgent extends AIChatAgent<Env, ChatState> {
       ctx.request.headers.get("Cookie"),
       this.env.COOKIE_SECRET
     );
-    if (session?.email && this.state.userEmail !== session.email) {
+    if (!session) {
+      return;
+    }
+    if (this.state.userEmail !== session.email) {
       this.setState({ userEmail: session.email });
     }
+    // refresh_token はサーバー専用ストレージに保持する。setState はクライアントへ
+    // ブロードキャストされるため秘密情報には使わない。
+    await this.ctx.storage.put("refreshToken", session.refreshToken);
+  }
+
+  /**
+   * 保存した refresh_token から Calendar 用の access_token を発行する。
+   * 取得できなければ null（要・再ログイン）。
+   */
+  async getCalendarAccessToken(): Promise<string | null> {
+    const refreshToken = await this.ctx.storage.get<string>("refreshToken");
+    if (!refreshToken) {
+      return null;
+    }
+    const result = await refreshAccessToken(
+      refreshToken,
+      this.env.GOOGLE_CLIENT_ID,
+      this.env.GOOGLE_CLIENT_SECRET
+    );
+    return result?.accessToken ?? null;
   }
 
   onStart() {
@@ -115,7 +138,7 @@ export class ChatAgent extends AIChatAgent<Env, ChatState> {
       }),
       tools: {
         ...mcpTools,
-        ...buildTools(this, this.env)
+        ...buildTools(this)
       },
       stopWhen: stepCountIs(5),
       abortSignal: options?.abortSignal

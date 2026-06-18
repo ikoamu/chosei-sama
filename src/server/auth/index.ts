@@ -19,6 +19,7 @@ import {
 
 export { verifySession } from "./session";
 export type { UserSession } from "./session";
+export { refreshAccessToken } from "./google-oauth";
 
 function configFromEnv(env: Env): OAuthConfig {
   return {
