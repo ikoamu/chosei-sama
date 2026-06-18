@@ -22,9 +22,10 @@ export function googleAuthUrl(
     client_id: clientId,
     redirect_uri: redirectUri,
     response_type: "code",
-    // 身元確認 + ディレクトリ参照（People API の同僚検索）を一度に同意させる。
+    // 身元確認 + ディレクトリ参照（People API の同僚検索）+ FreeBusy 照会
+    // （本人トークンでカレンダーの空きを読む）を一度に同意させる。
     scope:
-      "openid email profile https://www.googleapis.com/auth/directory.readonly",
+      "openid email profile https://www.googleapis.com/auth/directory.readonly https://www.googleapis.com/auth/calendar.freebusy",
     // offline で refresh_token を取得し、セッション中は再ログイン不要にする。
     access_type: "offline",
     hd: allowedDomain,

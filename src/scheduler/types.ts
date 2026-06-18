@@ -10,12 +10,6 @@ export interface Interval {
   end: number; // epoch ms (exclusive)
 }
 
-/** Google サービスアカウントの鍵（JSON 鍵ファイルの該当フィールド）。 */
-export interface ServiceAccount {
-  client_email: string;
-  private_key: string; // PEM (PKCS#8)
-}
-
 export interface WorkingHours {
   startHour: number; // 例: 9
   startMinute?: number; // 既定 0

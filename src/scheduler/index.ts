@@ -11,14 +11,16 @@
 export type {
   Interval,
   RecurringCandidate,
-  ServiceAccount,
   SlotCandidate,
   SlotPreferences,
   WorkingHours
 } from "./types";
 
-export { getAccessToken } from "./google-auth";
-export { queryFreeBusy } from "./freebusy";
+export {
+  queryFreeBusy,
+  parseFreeBusyResponse,
+  type FreeBusyResult
+} from "./freebusy";
 export { mergeIntervals, subtractIntervals, overlaps } from "./intervals";
 export { workingWindowsInRange } from "./windows";
 export { commonFree, findSlots, scoreSlot } from "./slots";
@@ -26,5 +28,7 @@ export {
   suggestSlots,
   suggestRecurringSlots,
   type SuggestSlotsOptions,
-  type SuggestRecurringOptions
+  type SuggestSlotsResult,
+  type SuggestRecurringOptions,
+  type SuggestRecurringResult
 } from "./suggest";

@@ -1,14 +1,13 @@
 // =============================================================================
 // server/tools/calendar-tools
 // カレンダー照会ツール（読み取り専用・自動実行可）。
-// scheduler の高レベル API を呼び、全員が空いている候補を返す。
+// 依頼者本人の OAuth アクセストークンで FreeBusy を照会し、全員が空いている候補を返す。
 // =============================================================================
 
 import { tool } from "ai";
 import { z } from "zod";
 import { suggestRecurringSlots, suggestSlots } from "../../scheduler";
 import type { ChatAgent } from "../chat-agent";
-import { loadServiceAccount } from "../service-account";
 
 /** preferredStartHour / preferredEndHour の両方が揃ったときだけ希望帯にする。 */
 function toPreferredWindow(startHour?: number, endHour?: number) {
@@ -17,10 +16,26 @@ function toPreferredWindow(startHour?: number, endHour?: number) {
     : undefined;
 }
 
-const NO_SUBJECT =
-  "ログインユーザーが未確定のため、カレンダーを照会できません。再ログインしてください。";
+const RELOGIN =
+  "カレンダーへのアクセス権限がありません。カレンダー権限を含めて再ログインしてください。";
 
-export function calendarTools(agent: ChatAgent, env: Env) {
+/** 読めなかった参加者を名指しするメッセージ。 */
+function unreadableMessage(ids: string[]): string {
+  return `次の参加者の空き情報を取得できませんでした: ${ids.join(
+    "、"
+  )}。これらの方を参加者から外すか、カレンダーの予定共有設定をご確認ください。`;
+}
+
+/** トークン期限切れ・スコープ不足（401/403）は再ログイン案内に変換する。 */
+function toUserError(err: unknown): string {
+  const msg = err instanceof Error ? err.message : String(err);
+  if (/\b(401|403)\b/.test(msg) || /insufficient|scope/i.test(msg)) {
+    return RELOGIN;
+  }
+  return msg;
+}
+
+export function calendarTools(agent: ChatAgent) {
   return {
     suggestSlots: tool({
       description:
@@ -64,13 +79,13 @@ export function calendarTools(agent: ChatAgent, env: Env) {
         preferredStartHour,
         preferredEndHour
       }) => {
-        if (!agent.state.userEmail) {
-          return { error: NO_SUBJECT };
+        const accessToken = await agent.getCalendarAccessToken();
+        if (!accessToken) {
+          return { error: RELOGIN };
         }
         try {
-          const candidates = await suggestSlots({
-            serviceAccount: loadServiceAccount(env),
-            subject: agent.state.userEmail,
+          const { candidates, unreadable } = await suggestSlots({
+            accessToken,
             calendarIds: members,
             timeMin: new Date(timeMin),
             timeMax: new Date(timeMax),
@@ -83,6 +98,9 @@ export function calendarTools(agent: ChatAgent, env: Env) {
               )
             }
           });
+          if (unreadable.length > 0) {
+            return { error: unreadableMessage(unreadable) };
+          }
           if (candidates.length === 0) {
             return {
               message: "指定期間内に全員が空いている枠が見つかりませんでした。"
@@ -90,9 +108,8 @@ export function calendarTools(agent: ChatAgent, env: Env) {
           }
           return { candidates };
         } catch (err) {
-          const msg = err instanceof Error ? err.message : String(err);
-          console.error("[suggestSlots] failed:", msg);
-          return { error: msg };
+          console.error("[suggestSlots] failed:", err);
+          return { error: toUserError(err) };
         }
       }
     }),
@@ -149,13 +166,13 @@ export function calendarTools(agent: ChatAgent, env: Env) {
         preferredStartHour,
         preferredEndHour
       }) => {
-        if (!agent.state.userEmail) {
-          return { error: NO_SUBJECT };
+        const accessToken = await agent.getCalendarAccessToken();
+        if (!accessToken) {
+          return { error: RELOGIN };
         }
         try {
-          const candidates = await suggestRecurringSlots({
-            serviceAccount: loadServiceAccount(env),
-            subject: agent.state.userEmail,
+          const { candidates, unreadable } = await suggestRecurringSlots({
+            accessToken,
             calendarIds: members,
             firstDate: new Date(firstDate),
             occurrences,
@@ -169,6 +186,9 @@ export function calendarTools(agent: ChatAgent, env: Env) {
               )
             }
           });
+          if (unreadable.length > 0) {
+            return { error: unreadableMessage(unreadable) };
+          }
           if (candidates.length === 0) {
             return {
               message:
@@ -177,9 +197,8 @@ export function calendarTools(agent: ChatAgent, env: Env) {
           }
           return { candidates };
         } catch (err) {
-          const msg = err instanceof Error ? err.message : String(err);
-          console.error("[suggestRecurringSlots] failed:", msg);
-          return { error: msg };
+          console.error("[suggestRecurringSlots] failed:", err);
+          return { error: toUserError(err) };
         }
       }
     })

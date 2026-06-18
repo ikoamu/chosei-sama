@@ -8,9 +8,9 @@ import type { ChatAgent } from "../chat-agent";
 import { calendarTools } from "./calendar-tools";
 import { taskTools } from "./task-tools";
 
-export function buildTools(agent: ChatAgent, env: Env) {
+export function buildTools(agent: ChatAgent) {
   return {
-    ...calendarTools(agent, env),
+    ...calendarTools(agent),
     ...taskTools(agent)
   };
 }

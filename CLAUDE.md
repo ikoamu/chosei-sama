@@ -24,15 +24,15 @@ src/
     timezone.ts           # epoch ms ⇄ IANA tz の変換ヘルパー（純粋）
     windows.ts            # workingWindowsInRange（勤務時間ウィンドウ生成）
     slots.ts              # commonFree / findSlots / scoreSlot
-    google-auth.ts        # getAccessToken（SA 鍵 → トークン, RS256）
-    freebusy.ts           # queryFreeBusy（FreeBusy 照会）
+    freebusy.ts           # queryFreeBusy / parseFreeBusyResponse（FreeBusy 照会）
     suggest.ts            # suggestSlots（単発）/ suggestRecurringSlots（定期）
     intervals.test.ts     # 区間・tz ロジックの単体テスト（13件）
+    freebusy.test.ts      # FreeBusy レスポンス分解の単体テスト
   server/                 # Worker / Durable Object 側
     index.ts              # Worker エントリ（wrangler main）。ルーティング＋ChatAgent re-export
-    chat-agent.ts         # ChatAgent（AIChatAgent ベースの Durable Object）
+    chat-agent.ts         # ChatAgent（DO）。onConnect で認証確定＋refresh_token保持、
+                          # getCalendarAccessToken で本人トークン発行
     prompt.ts             # システムプロンプト生成
-    service-account.ts    # GOOGLE_SA_KEY（Secrets）の読み出し
     tools/
       index.ts            # buildTools（自前ツールを束ねる）
       calendar-tools.ts   # suggestSlots / suggestRecurringSlots ツール
@@ -58,8 +58,8 @@ vite.config.ts            # Vite ビルド設定
 ```
 
 - `src/scheduler/` … 提案エンジン。**実装済み・テスト済み**。公開 API は `index.ts` 経由。
-  - `queryFreeBusy` … Google Calendar FreeBusy 照会（busy区間だけ取得し、予定の中身は見ない）。
-  - `getAccessToken` … サービスアカウント鍵 → アクセストークン（Web Crypto / RS256、ドメイン委任の `subject` 偽装あり）。
+  - `queryFreeBusy` / `parseFreeBusyResponse` … FreeBusy 照会（busy区間だけ取得し、予定の中身は見ない）。読めなかった参加者は throw せず `unreadable` に分ける。
+  - 照会は**依頼者本人の OAuth アクセストークン**で行う（SA は廃止。`docs/adr/0001` 参照）。
   - 純粋関数の区間演算: `mergeIntervals` / `subtractIntervals` / `commonFree` / `findSlots`。
   - 高レベルAPI: `suggestSlots`（単発）/ `suggestRecurringSlots`（定期）。
 - `src/server/` … `ChatAgent` と OAuth・ツール定義。**scheduler との結線済み**（`tools/calendar-tools.ts`）。
@@ -70,8 +70,10 @@ vite.config.ts            # Vite ビルド設定
 
 - ランタイム: **Cloudflare Workers + Agents SDK**。各Agentは Durable Object（状態・cron・WebSocketを持つ）。
 - カレンダー: **Google Calendar API**。空き判定は FreeBusy（`freebusy.query`）でbusy区間のみ取得＝プライバシー配慮。
-- 認証: **GCPサービスアカウント + Workspaceドメイン委任**（スコープ `calendar.readonly`）。
-  鍵は `wrangler secret put GOOGLE_SA_KEY` で格納。**コードや .env に鍵を直書きしない。**
+- 認証: **ユーザー自身の OAuth**（ログイン時にスコープ `calendar.freebusy` を同意）。FreeBusy は依頼者本人のトークンで叩く。
+  ログインの `refresh_token` をセッション Cookie に保持し、DO は `onConnect` で検証して `ctx.storage` に保管、`getCalendarAccessToken` で都度 access_token を発行。
+  **SA + ドメイン委任は廃止**（管理者が委任を許可せず `unauthorized_client`。経緯は `docs/adr/0001`）。
+  読めない参加者がいる場合は候補を出さず名指しで中断する（CONTEXT.md「空き可視性」）。
 - タイムゾーン: 計算はすべて epoch ms。境界（勤務時間の生成・表示）でのみ IANA tz 変換。既定は `Asia/Tokyo`。
 
 ## 次のタスク（優先順）
@@ -83,13 +85,14 @@ vite.config.ts            # Vite ビルド設定
 ## ガードレール（重要）
 
 - カレンダーへの**書き込み・招待送信は副作用**。必ずユーザー承認を挟む。読み取り＆提案は自動でよい。
-- 他人の free/busy へのアクセスは**情シス / Workspace管理者の承認が前提**。ドメイン委任の設定も管理者作業。
-- 秘密情報（SA鍵・トークン）は **Secrets のみ**。ログ・URL・リポジトリに残さない。
+- 他人の free/busy は**依頼者本人の権限で読める範囲のみ**。読めない人は黙って無視せず名指しで中断する。
+- 静的な秘密情報（OAuth クライアントシークレット・`COOKIE_SECRET`）は **Secrets のみ**。ログ・URL・リポジトリに残さない。
+- ユーザーの `refresh_token` は per-user の動的資格情報。DO の `ctx.storage`（サーバー専用）にのみ保持し、`setState`（クライアントへ同期）やログには出さない。
 
 ## コマンド
 
 - 開発サーバ: `pnpm dev`
-- コアのテスト: `pnpm exec tsx src/scheduler/intervals.test.ts`
+- コアのテスト: `pnpm exec tsx src/scheduler/intervals.test.ts`（FreeBusy 分解は `src/scheduler/freebusy.test.ts`）
 - lint / format / 型チェック: `pnpm check`
 - デプロイ: main push で Cloudflare Workers Builds が自動実行。手動: `pnpm deploy`（= `vite build && wrangler deploy`）
 
