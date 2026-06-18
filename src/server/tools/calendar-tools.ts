@@ -6,7 +6,11 @@
 
 import { tool } from "ai";
 import { z } from "zod";
-import { suggestRecurringSlots, suggestSlots } from "../../scheduler";
+import {
+  createEvent,
+  suggestRecurringSlots,
+  suggestSlots
+} from "../../scheduler";
 import type { ChatAgent } from "../chat-agent";
 
 /** preferredStartHour / preferredEndHour の両方が揃ったときだけ希望帯にする。 */
@@ -198,6 +202,68 @@ export function calendarTools(agent: ChatAgent) {
           return { candidates };
         } catch (err) {
           console.error("[suggestRecurringSlots] failed:", err);
+          return { error: toUserError(err) };
+        }
+      }
+    }),
+
+    createEvent: tool({
+      description:
+        "確定した候補をカレンダー予定として作成し、参加者へ招待を送る。書き込み（副作用）のため必ずユーザー承認を挟む。",
+      // 副作用ツール: 実行前に必ず人が承認する（CLAUDE.md ガードレール）。
+      needsApproval: true,
+      inputSchema: z.object({
+        title: z.string().describe("予定のタイトル"),
+        startISO: z.string().describe("開始時刻（ISO 8601）"),
+        endISO: z.string().describe("終了時刻（ISO 8601）"),
+        attendees: z
+          .array(z.string())
+          .describe("招待する参加者のメールアドレス（主催者本人は不要）"),
+        timeZone: z
+          .string()
+          .default("Asia/Tokyo")
+          .describe("IANA タイムゾーン"),
+        description: z.string().optional().describe("予定の説明（任意）"),
+        addMeet: z
+          .boolean()
+          .default(true)
+          .describe("Google Meet リンクを付けるか（既定: 付ける）")
+      }),
+      execute: async ({
+        title,
+        startISO,
+        endISO,
+        attendees,
+        timeZone,
+        description,
+        addMeet
+      }) => {
+        const accessToken = await agent.getCalendarAccessToken();
+        if (!accessToken) {
+          return { error: RELOGIN };
+        }
+        try {
+          const result = await createEvent(accessToken, {
+            organizer: agent.state.userEmail,
+            title,
+            startISO,
+            endISO,
+            attendees,
+            timeZone,
+            description,
+            addMeet
+          });
+          return {
+            created: true,
+            alreadyExists: result.alreadyExists,
+            htmlLink: result.htmlLink,
+            hangoutLink: result.hangoutLink,
+            message: result.alreadyExists
+              ? "同じ予約が既に作成済みです。"
+              : "予約を作成し、参加者に招待を送りました。"
+          };
+        } catch (err) {
+          console.error("[createEvent] failed:", err);
           return { error: toUserError(err) };
         }
       }

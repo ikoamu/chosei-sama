@@ -21,6 +21,13 @@ export {
   parseFreeBusyResponse,
   type FreeBusyResult
 } from "./freebusy";
+export {
+  createEvent,
+  buildEventId,
+  buildEventRequest,
+  type EventDraft,
+  type CreateEventResult
+} from "./events";
 export { mergeIntervals, subtractIntervals, overlaps } from "./intervals";
 export { workingWindowsInRange } from "./windows";
 export { commonFree, findSlots, scoreSlot } from "./slots";

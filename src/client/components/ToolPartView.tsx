@@ -54,13 +54,21 @@ export function ToolPartView({
           <div className="flex items-center gap-2 mb-2">
             <GearIcon size={14} className="text-kumo-warning" />
             <Text size="sm" bold>
-              Approval needed: {toolName}
+              {toolName === "createEvent"
+                ? "この内容で予約しますか？"
+                : `Approval needed: ${toolName}`}
             </Text>
           </div>
-          <div className="font-mono mb-3">
-            <Text size="xs" variant="secondary">
-              {JSON.stringify(part.input, null, 2)}
-            </Text>
+          <div className="mb-3">
+            {toolName === "createEvent" ? (
+              <BookingSummary input={part.input} />
+            ) : (
+              <Text size="xs" variant="secondary">
+                <span className="font-mono">
+                  {JSON.stringify(part.input, null, 2)}
+                </span>
+              </Text>
+            )}
           </div>
           <div className="flex gap-2">
             <Button
@@ -131,4 +139,44 @@ export function ToolPartView({
   }
 
   return null;
+}
+
+/** createEvent の承認カードに出す、人間が読める予約内容の要約。 */
+function BookingSummary({ input }: { input: unknown }) {
+  const ev = (input ?? {}) as {
+    title?: string;
+    startISO?: string;
+    endISO?: string;
+    attendees?: string[];
+    timeZone?: string;
+    addMeet?: boolean;
+  };
+  const tz = ev.timeZone || "Asia/Tokyo";
+  const fmt = (iso?: string) => {
+    if (!iso) {
+      return "—";
+    }
+    const d = new Date(iso);
+    return Number.isNaN(d.getTime())
+      ? iso
+      : d.toLocaleString("ja-JP", {
+          timeZone: tz,
+          dateStyle: "medium",
+          timeStyle: "short"
+        });
+  };
+  const row = (label: string, value: string) => (
+    <div className="flex gap-2 text-xs">
+      <span className="text-kumo-subtle shrink-0 w-12">{label}</span>
+      <span className="text-kumo-default break-all">{value}</span>
+    </div>
+  );
+  return (
+    <div className="space-y-1">
+      {row("件名", ev.title || "（無題）")}
+      {row("日時", `${fmt(ev.startISO)} 〜 ${fmt(ev.endISO)}`)}
+      {row("参加者", ev.attendees?.length ? ev.attendees.join("、") : "なし")}
+      {row("Meet", ev.addMeet === false ? "なし" : "あり")}
+    </div>
+  );
 }
