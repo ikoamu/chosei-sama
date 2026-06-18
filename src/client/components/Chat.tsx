@@ -63,12 +63,6 @@ export function Chat({ user }: { user: AuthUser }) {
     )
   });
 
-  useEffect(() => {
-    if (connected) {
-      agent.stub.setUserEmail(user.email);
-    }
-  }, [connected, agent.stub, user.email]);
-
   const {
     messages,
     sendMessage,

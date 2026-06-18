@@ -64,13 +64,13 @@ export function calendarTools(agent: ChatAgent, env: Env) {
         preferredStartHour,
         preferredEndHour
       }) => {
-        if (!agent.userEmail) {
+        if (!agent.state.userEmail) {
           return { error: NO_SUBJECT };
         }
         try {
           const candidates = await suggestSlots({
             serviceAccount: loadServiceAccount(env),
-            subject: agent.userEmail,
+            subject: agent.state.userEmail,
             calendarIds: members,
             timeMin: new Date(timeMin),
             timeMax: new Date(timeMax),
@@ -149,13 +149,13 @@ export function calendarTools(agent: ChatAgent, env: Env) {
         preferredStartHour,
         preferredEndHour
       }) => {
-        if (!agent.userEmail) {
+        if (!agent.state.userEmail) {
           return { error: NO_SUBJECT };
         }
         try {
           const candidates = await suggestRecurringSlots({
             serviceAccount: loadServiceAccount(env),
-            subject: agent.userEmail,
+            subject: agent.state.userEmail,
             calendarIds: members,
             firstDate: new Date(firstDate),
             occurrences,

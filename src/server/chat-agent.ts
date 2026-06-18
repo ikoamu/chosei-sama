@@ -6,7 +6,12 @@
 // =============================================================================
 
 import { createWorkersAI } from "workers-ai-provider";
-import { callable, type Schedule } from "agents";
+import {
+  callable,
+  type Connection,
+  type ConnectionContext,
+  type Schedule
+} from "agents";
 import { AIChatAgent, type OnChatMessageOptions } from "@cloudflare/ai-chat";
 import {
   convertToModelMessages,
@@ -15,21 +20,35 @@ import {
   streamText,
   wrapLanguageModel
 } from "ai";
+import { verifySession } from "./auth";
 import { buildSystemPrompt } from "./prompt";
 import { buildTools } from "./tools";
 
 const PRIMARY_MODEL = "@cf/moonshotai/kimi-k2.6";
 const FALLBACK_MODEL = "@cf/meta/llama-4-scout-17b-16e-instruct";
 
-export class ChatAgent extends AIChatAgent<Env> {
-  maxPersistedMessages = 100;
-  // 認証済みリクエスト者のメール。ドメイン委任の subject（誰として読むか）の
-  // 唯一の出所。接続時に client から一度だけセットされ、ツールはここを参照する。
-  userEmail = "";
+/** SQLite に永続される Agent 状態。hibernation を跨いでも保持される。 */
+interface ChatState {
+  /** 認証済みリクエスト者のメール。ドメイン委任の subject（誰として読むか）の唯一の出所。 */
+  userEmail: string;
+}
 
-  @callable()
-  setUserEmail(email: string) {
-    this.userEmail = email;
+export class ChatAgent extends AIChatAgent<Env, ChatState> {
+  maxPersistedMessages = 100;
+  initialState: ChatState = { userEmail: "" };
+
+  // 接続時にセッション Cookie を検証し、認証済みメールをサーバー側で確定する。
+  // クライアントの申告に依存せず、hibernation で失われない（state は永続）。
+  // フレームワークのラッパーが本処理（state 同期・ストリーム再開）を済ませた後に
+  // 呼ばれる拡張フックのため、super.onConnect は呼ばない。
+  async onConnect(_connection: Connection, ctx: ConnectionContext) {
+    const session = await verifySession(
+      ctx.request.headers.get("Cookie"),
+      this.env.COOKIE_SECRET
+    );
+    if (session?.email && this.state.userEmail !== session.email) {
+      this.setState({ userEmail: session.email });
+    }
   }
 
   onStart() {
@@ -89,7 +108,7 @@ export class ChatAgent extends AIChatAgent<Env> {
 
     const result = streamText({
       model,
-      system: buildSystemPrompt(this.userEmail),
+      system: buildSystemPrompt(this.state.userEmail),
       messages: pruneMessages({
         messages: await convertToModelMessages(this.messages),
         toolCalls: "before-last-2-messages"
