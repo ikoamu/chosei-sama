@@ -1,14 +1,10 @@
 // =============================================================================
 // client/lib/directory (browser only)
-// People API のディレクトリ検索（同僚オートコンプリート）。
-// トークンは /oauth/directory-token からサーバー経由で取得し、メモリにキャッシュする。
+// ディレクトリ参照用トークンの取得（ブラウザ専用）。
+// 検索ロジックと型は shared/directory に集約し、ここから再エクスポートする。
 // =============================================================================
 
-export interface DirectoryPerson {
-  name: string;
-  email: string;
-  photo?: string;
-}
+export { searchDirectory, type DirectoryPerson } from "../../shared/directory";
 
 // ---------- トークン管理 ----------
 
@@ -36,49 +32,4 @@ export async function fetchDirectoryToken(): Promise<string> {
     expiresAt: Date.now() + data.expiresIn * 1000
   };
   return cached.token;
-}
-
-// ---------- ディレクトリ検索 ----------
-
-/** People API でディレクトリを部分一致検索する。 */
-export async function searchDirectory(
-  token: string,
-  query: string
-): Promise<DirectoryPerson[]> {
-  const url = new URL(
-    "https://people.googleapis.com/v1/people:searchDirectoryPeople"
-  );
-  url.searchParams.set("query", query);
-  url.searchParams.set("readMask", "names,emailAddresses,photos");
-  url.searchParams.append("sources", "DIRECTORY_SOURCE_TYPE_DOMAIN_PROFILE");
-  url.searchParams.set("pageSize", "10");
-
-  const res = await fetch(url, {
-    headers: { Authorization: `Bearer ${token}` }
-  });
-  if (!res.ok) {
-    throw new Error(`directory search failed: ${res.status}`);
-  }
-
-  const data = (await res.json()) as {
-    people?: {
-      names?: { displayName?: string }[];
-      emailAddresses?: { value?: string }[];
-      photos?: { url?: string }[];
-    }[];
-  };
-
-  const out: DirectoryPerson[] = [];
-  for (const p of data.people ?? []) {
-    const email = p.emailAddresses?.[0]?.value;
-    if (!email) {
-      continue;
-    }
-    out.push({
-      name: p.names?.[0]?.displayName ?? email,
-      email,
-      photo: p.photos?.[0]?.url
-    });
-  }
-  return out;
 }

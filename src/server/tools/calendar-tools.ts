@@ -1,7 +1,7 @@
 // =============================================================================
 // server/tools/calendar-tools
-// カレンダー照会ツール（読み取り専用・自動実行可）。
-// 依頼者本人の OAuth アクセストークンで FreeBusy を照会し、全員が空いている候補を返す。
+// 調整ツール（読み取り＆提案は自動実行可・予約のみ承認制）。
+// 依頼者本人の OAuth アクセストークンで、ディレクトリ検索／FreeBusy 照会／予約を行う。
 // =============================================================================
 
 import { tool } from "ai";
@@ -11,6 +11,7 @@ import {
   suggestRecurringSlots,
   suggestSlots
 } from "../../scheduler";
+import { searchDirectory } from "../../shared/directory";
 import type { ChatAgent } from "../chat-agent";
 
 /** preferredStartHour / preferredEndHour の両方が揃ったときだけ希望帯にする。 */
@@ -44,6 +45,38 @@ function toUserError(err: unknown): string {
 
 export function calendarTools(agent: ChatAgent) {
   return {
+    findPeople: tool({
+      description:
+        "自然文中の名前（例: 田中さん）をドメインの同僚（メールアドレス）に解決する。suggestSlots などに渡すメールを得るために使う。",
+      inputSchema: z.object({
+        query: z.string().describe("検索する名前またはメールの一部")
+      }),
+      execute: async ({ query }) => {
+        if (!query.trim()) {
+          return { message: "検索する名前を指定してください。" };
+        }
+        const accessToken = await agent.getCalendarAccessToken();
+        if (!accessToken) {
+          return { error: RELOGIN };
+        }
+        try {
+          const people = await searchDirectory(accessToken, query.trim());
+          if (people.length === 0) {
+            return {
+              message: `「${query}」に一致する同僚が見つかりませんでした。`
+            };
+          }
+          // name と email のみ返す（写真は不要）。
+          return {
+            people: people.map((p) => ({ name: p.name, email: p.email }))
+          };
+        } catch (err) {
+          console.error("[findPeople] failed:", err);
+          return { error: toUserError(err) };
+        }
+      }
+    }),
+
     suggestSlots: tool({
       description:
         "指定メンバー全員が空いている単発ミーティングの候補時間を検索する",
