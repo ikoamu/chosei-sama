@@ -22,6 +22,7 @@ export function buildSystemPrompt(userEmail: string): string {
 
 注意:
 - 候補の提示・検索は自動で行ってよい
+- 「金曜希望」など曜日の指定があれば weekdays に渡す（0=日,1=月,…,5=金,6=土。例: 金曜のみ→[5]）。firstDate は曜日を選ぶものではなく探索の下限日でしかない
 - 定例（定期開催）を確定するときは、createEvent を1回だけ呼び recurrence（everyNWeeks・occurrences）を渡す。startISO は初回。複数回 createEvent を呼んで単発予定を量産しない
 - createEvent は副作用（書き込み・招待送信）。実行前に UI でユーザー承認を必ず挟む（このゲートは自動で入るので、ユーザーが確定意思を示したら遠慮なく createEvent を呼んでよい）。承認前に確定したと伝えない
 - 日時はすべて日本時間（Asia/Tokyo）で扱う。ツールにタイムゾーン指定は不要

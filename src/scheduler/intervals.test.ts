@@ -90,6 +90,27 @@ const H = (iso: string) => Date.parse(iso);
   check("working: 週末は0ウィンドウ", w.length === 0, JSON.stringify(w));
 }
 
+// --- allowedWeekdays で曜日を絞れる（金曜のみ）------------------------------
+{
+  const prefs: SlotPreferences = {
+    durationMinutes: 30,
+    timeZone: "Asia/Tokyo",
+    allowedWeekdays: [5] // 金曜のみ
+  };
+  // 2026-06-22(月) 00:00 JST .. 2026-06-28(日) 00:00 JST（月〜土を覆う）
+  const tMin = H("2026-06-21T15:00:00.000Z"); // 06-22 00:00 JST(月)
+  const tMax = H("2026-06-27T15:00:00.000Z"); // 06-28 00:00 JST(日直前)
+  const w = workingWindowsInRange(tMin, tMax, prefs);
+  check("weekday: 金曜のみ1ウィンドウ", w.length === 1, JSON.stringify(w));
+  // 金曜 09:00 JST = 00:00 UTC（= 2026-06-26）。
+  check(
+    "weekday: その日は 2026-06-26(金) 09:00 JST",
+    w.length === 1 &&
+      new Date(w[0].start).toISOString() === "2026-06-26T00:00:00.000Z",
+    w.length ? new Date(w[0].start).toISOString() : "none"
+  );
+}
+
 // --- 統合: commonFree + findSlots（午後優先） -------------------------------
 {
   const prefs: SlotPreferences = {
