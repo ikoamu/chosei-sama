@@ -20,6 +20,9 @@ function toPreferredWindow(startHour?: number, endHour?: number) {
     : undefined;
 }
 
+/** 調整さまは日本時間固定で扱う。 */
+const TIME_ZONE = "Asia/Tokyo";
+
 const RELOGIN =
   "カレンダーへのアクセス権限がありません。カレンダー権限を含めて再ログインしてください。";
 
@@ -55,10 +58,6 @@ export function calendarTools(agent: ChatAgent) {
           .describe("会議の長さ（分）"),
         timeMin: z.string().describe("検索範囲の開始（ISO 8601）"),
         timeMax: z.string().describe("検索範囲の終了（ISO 8601）"),
-        timeZone: z
-          .string()
-          .default("Asia/Tokyo")
-          .describe("IANA タイムゾーン"),
         preferredStartHour: z
           .number()
           .int()
@@ -79,7 +78,6 @@ export function calendarTools(agent: ChatAgent) {
         durationMinutes,
         timeMin,
         timeMax,
-        timeZone,
         preferredStartHour,
         preferredEndHour
       }) => {
@@ -95,7 +93,7 @@ export function calendarTools(agent: ChatAgent) {
             timeMax: new Date(timeMax),
             preferences: {
               durationMinutes,
-              timeZone,
+              timeZone: TIME_ZONE,
               preferredWindow: toPreferredWindow(
                 preferredStartHour,
                 preferredEndHour
@@ -141,10 +139,6 @@ export function calendarTools(agent: ChatAgent) {
           .int()
           .positive()
           .describe("開催頻度（1=毎週, 2=隔週）"),
-        timeZone: z
-          .string()
-          .default("Asia/Tokyo")
-          .describe("IANA タイムゾーン"),
         preferredStartHour: z
           .number()
           .int()
@@ -166,7 +160,6 @@ export function calendarTools(agent: ChatAgent) {
         firstDate,
         occurrences,
         everyNWeeks,
-        timeZone,
         preferredStartHour,
         preferredEndHour
       }) => {
@@ -183,7 +176,7 @@ export function calendarTools(agent: ChatAgent) {
             everyNWeeks,
             preferences: {
               durationMinutes,
-              timeZone,
+              timeZone: TIME_ZONE,
               preferredWindow: toPreferredWindow(
                 preferredStartHour,
                 preferredEndHour
@@ -219,10 +212,6 @@ export function calendarTools(agent: ChatAgent) {
         attendees: z
           .array(z.string())
           .describe("招待する参加者のメールアドレス（主催者本人は不要）"),
-        timeZone: z
-          .string()
-          .default("Asia/Tokyo")
-          .describe("IANA タイムゾーン"),
         description: z.string().optional().describe("予定の説明（任意）"),
         addMeet: z
           .boolean()
@@ -234,7 +223,6 @@ export function calendarTools(agent: ChatAgent) {
         startISO,
         endISO,
         attendees,
-        timeZone,
         description,
         addMeet
       }) => {
@@ -249,7 +237,7 @@ export function calendarTools(agent: ChatAgent) {
             startISO,
             endISO,
             attendees,
-            timeZone,
+            timeZone: TIME_ZONE,
             description,
             addMeet
           });

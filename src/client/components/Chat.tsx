@@ -20,10 +20,7 @@ import { useChatSubmit } from "use-chat-submit";
 import type { ChatAgent } from "../../server/chat-agent";
 import type { AuthUser } from "../types";
 import type { DirectoryPerson } from "../lib/directory";
-import {
-  buildScheduleMessage,
-  type ScheduleOptions
-} from "../lib/participants";
+import { buildScheduleMessage } from "../lib/participants";
 import { ChatHeader } from "./ChatHeader";
 import { MessageList } from "./MessageList";
 import { ParticipantPicker } from "./ParticipantPicker";
@@ -71,23 +68,7 @@ export function Chat({ user }: { user: AuthUser }) {
     stop,
     status,
     error
-  } = useAgentChat({
-    agent,
-    onToolCall: async (event) => {
-      if (
-        "addToolOutput" in event &&
-        event.toolCall.toolName === "getUserTimezone"
-      ) {
-        event.addToolOutput({
-          toolCallId: event.toolCall.toolCallId,
-          output: {
-            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-            localTime: new Date().toLocaleTimeString()
-          }
-        });
-      }
-    }
-  });
+  } = useAgentChat({ agent });
 
   const isStreaming = status === "streaming" || status === "submitted";
 
@@ -118,13 +99,13 @@ export function Chat({ user }: { user: AuthUser }) {
   }, [isStreaming, textareaRef]);
 
   const startWithParticipants = useCallback(
-    (people: DirectoryPerson[], options: ScheduleOptions) => {
+    (people: DirectoryPerson[], details: string) => {
       sendMessage({
         role: "user",
         parts: [
           {
             type: "text",
-            text: buildScheduleMessage(people, user, options)
+            text: buildScheduleMessage(people, user, details)
           }
         ]
       });

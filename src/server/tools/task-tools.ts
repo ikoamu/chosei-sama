@@ -1,7 +1,6 @@
 // =============================================================================
 // server/tools/task-tools
-// 補助ツール。ユーザーのタイムゾーン取得（クライアント側で解決）と、
-// Durable Object の cron を使ったタスクのスケジュール・一覧・取消。
+// 補助ツール。Durable Object の cron を使ったタスクのスケジュール・一覧・取消。
 // =============================================================================
 
 import { tool } from "ai";
@@ -11,13 +10,6 @@ import type { ChatAgent } from "../chat-agent";
 
 export function taskTools(agent: ChatAgent) {
   return {
-    getUserTimezone: tool({
-      description:
-        "ユーザーのブラウザからタイムゾーンを取得する。ローカル時刻やタイムゾーンが必要なときに使う。",
-      inputSchema: z.object({})
-      // execute なし: クライアントの onToolCall でブラウザから解決する。
-    }),
-
     scheduleTask: tool({
       description:
         "タスクを後で実行するようスケジュールする。リマインダーや定期チェックに使う。",
