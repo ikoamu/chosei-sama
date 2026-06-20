@@ -74,7 +74,7 @@ export async function suggestSlots(
 export interface SuggestRecurringOptions {
   accessToken: string; // 依頼者の OAuth アクセストークン
   calendarIds: string[];
-  firstDate: Date | number; // この日以降の最初の該当曜日から開始
+  firstDate: Date | number; // 探索の下限日。曜日は preferences.allowedWeekdays で絞る
   occurrences: number; // 検証する開催回数（例: 6）
   everyNWeeks: number; // 1=毎週, 2=隔週
   preferences: SlotPreferences;

@@ -71,7 +71,13 @@ export function calendarTools(agent: ChatAgent) {
           .min(0)
           .max(23)
           .optional()
-          .describe("希望時間帯の終了時（ローカル時刻）")
+          .describe("希望時間帯の終了時（ローカル時刻）"),
+        weekdays: z
+          .array(z.number().int().min(0).max(6))
+          .optional()
+          .describe(
+            "候補に含める曜日（0=日,1=月,…,5=金,6=土）。例: 金曜のみなら [5]。未指定なら平日"
+          )
       }),
       execute: async ({
         members,
@@ -79,7 +85,8 @@ export function calendarTools(agent: ChatAgent) {
         timeMin,
         timeMax,
         preferredStartHour,
-        preferredEndHour
+        preferredEndHour,
+        weekdays
       }) => {
         const accessToken = await agent.getCalendarAccessToken();
         if (!accessToken) {
@@ -94,6 +101,7 @@ export function calendarTools(agent: ChatAgent) {
             preferences: {
               durationMinutes,
               timeZone: TIME_ZONE,
+              allowedWeekdays: weekdays,
               preferredWindow: toPreferredWindow(
                 preferredStartHour,
                 preferredEndHour
@@ -128,7 +136,9 @@ export function calendarTools(agent: ChatAgent) {
           .describe("1回あたりの会議の長さ（分）"),
         firstDate: z
           .string()
-          .describe("開始日（ISO 8601）。この日以降の最初の該当曜日から開始"),
+          .describe(
+            "探索の開始日（ISO 8601）。この日以降を対象期間の下限とする。曜日の指定ではない"
+          ),
         occurrences: z
           .number()
           .int()
@@ -152,7 +162,13 @@ export function calendarTools(agent: ChatAgent) {
           .min(0)
           .max(23)
           .optional()
-          .describe("希望時間帯の終了時")
+          .describe("希望時間帯の終了時"),
+        weekdays: z
+          .array(z.number().int().min(0).max(6))
+          .optional()
+          .describe(
+            "候補に含める曜日（0=日,1=月,…,5=金,6=土）。例: 金曜のみなら [5]。未指定なら平日"
+          )
       }),
       execute: async ({
         members,
@@ -161,7 +177,8 @@ export function calendarTools(agent: ChatAgent) {
         occurrences,
         everyNWeeks,
         preferredStartHour,
-        preferredEndHour
+        preferredEndHour,
+        weekdays
       }) => {
         const accessToken = await agent.getCalendarAccessToken();
         if (!accessToken) {
@@ -177,6 +194,7 @@ export function calendarTools(agent: ChatAgent) {
             preferences: {
               durationMinutes,
               timeZone: TIME_ZONE,
+              allowedWeekdays: weekdays,
               preferredWindow: toPreferredWindow(
                 preferredStartHour,
                 preferredEndHour
