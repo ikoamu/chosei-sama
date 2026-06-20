@@ -94,6 +94,7 @@ vite.config.ts            # Vite ビルド設定
 - 開発サーバ: `pnpm dev`
 - コアのテスト: `pnpm exec tsx src/scheduler/intervals.test.ts`（FreeBusy 分解は `src/scheduler/freebusy.test.ts`）
 - lint / format / 型チェック: `pnpm check`
+- コード品質の傾向確認: `pnpm quality`（fallow）。**スコアは鵜呑みにしない** — `@babel/plugin-proposal-decorators` / `@rolldown/plugin-babel`（`@callable` デコレータのビルドに必要）や `ChatAgent` のライフサイクル（`onConnect`/`onStart`/`onChatMessage` 等、SDK が呼ぶ）は「未使用」と誤検知される。これらは削除しない。
 - デプロイ: main push で Cloudflare Workers Builds が自動実行。手動: `pnpm deploy`（= `vite build && wrangler deploy`）
 
 ## 参照リンク
