@@ -26,7 +26,7 @@ const sato: DirectoryPerson = { name: "佐藤", email: "sato@esm.co.jp" };
   check("自分を含む: 主催はあなたと明示", msg.includes("主催はあなた"), msg);
 }
 
-// --- 自分を除外した調整（他人同士の調整） -----------------------------------
+// --- selected に自分が含まれない場合の防御的分岐（UI からは到達しない）-------
 {
   const msg = buildScheduleMessage([tanaka, sato], self);
   check("除外: 他者の email が入る", msg.includes(tanaka.email), msg);
