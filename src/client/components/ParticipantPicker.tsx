@@ -9,7 +9,6 @@ import { Button, Surface, Text } from "@cloudflare/kumo";
 import {
   MagnifyingGlassIcon,
   GearIcon,
-  PlusIcon,
   UsersIcon,
   XIcon
 } from "@phosphor-icons/react";
@@ -46,7 +45,7 @@ export function ParticipantPicker({
   const [tokenError, setTokenError] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<DirectoryPerson[]>([]);
-  // 既定で自分を参加者に含める（✕ で除外可能）。
+  // 自分は必ず参加者に含める（削除不可）。
   const [selected, setSelected] = useState<DirectoryPerson[]>([selfPerson]);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
@@ -54,8 +53,6 @@ export function ParticipantPicker({
   const [kind, setKind] = useState<ScheduleKind>("recurring");
   const [details, setDetails] = useState("");
   const boxRef = useRef<HTMLDivElement>(null);
-
-  const selfSelected = selected.some((s) => s.email === self.email);
 
   // マウント時にサーバーからディレクトリ参照用トークンを取得。
   // ポップアップ等は発生しない（サーバーが refresh_token で更新する）。
@@ -120,12 +117,6 @@ export function ParticipantPicker({
 
   const removePerson = (email: string) => {
     setSelected((prev) => prev.filter((s) => s.email !== email));
-  };
-
-  const addSelf = () => {
-    if (!selfSelected) {
-      setSelected((prev) => [selfPerson, ...prev]);
-    }
   };
 
   const visibleResults = results.filter(
@@ -196,14 +187,17 @@ export function ParticipantPicker({
                     <span className="text-kumo-subtle">（あなた）</span>
                   )}
                 </span>
-                <button
-                  type="button"
-                  onClick={() => removePerson(p.email)}
-                  aria-label={`${p.name} を削除`}
-                  className="text-kumo-inactive hover:text-kumo-danger"
-                >
-                  <XIcon size={12} />
-                </button>
+                {/* 自分は必ず参加者に含めるため削除ボタンを出さない。 */}
+                {!isSelf && (
+                  <button
+                    type="button"
+                    onClick={() => removePerson(p.email)}
+                    aria-label={`${p.name} を削除`}
+                    className="text-kumo-inactive hover:text-kumo-danger"
+                  >
+                    <XIcon size={12} />
+                  </button>
+                )}
               </span>
             );
           })}
@@ -266,19 +260,6 @@ export function ParticipantPicker({
             </div>
           )}
         </div>
-      )}
-
-      {/* 自分を除外しているときだけ、再追加の導線を出す */}
-      {!selfSelected && (
-        <button
-          type="button"
-          onClick={addSelf}
-          disabled={disabled}
-          className="flex items-center gap-1.5 mx-auto text-xs text-kumo-subtle hover:text-kumo-accent transition-colors disabled:opacity-50"
-        >
-          <PlusIcon size={12} />
-          自分（{self.name}）を追加
-        </button>
       )}
 
       {/* 種別トグル＋希望条件 */}
