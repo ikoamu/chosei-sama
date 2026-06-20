@@ -71,23 +71,7 @@ export function Chat({ user }: { user: AuthUser }) {
     stop,
     status,
     error
-  } = useAgentChat({
-    agent,
-    onToolCall: async (event) => {
-      if (
-        "addToolOutput" in event &&
-        event.toolCall.toolName === "getUserTimezone"
-      ) {
-        event.addToolOutput({
-          toolCallId: event.toolCall.toolCallId,
-          output: {
-            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-            localTime: new Date().toLocaleTimeString()
-          }
-        });
-      }
-    }
-  });
+  } = useAgentChat({ agent });
 
   const isStreaming = status === "streaming" || status === "submitted";
 
