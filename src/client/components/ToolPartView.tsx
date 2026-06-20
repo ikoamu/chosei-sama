@@ -150,6 +150,7 @@ function BookingSummary({ input }: { input: unknown }) {
     attendees?: string[];
     timeZone?: string;
     addMeet?: boolean;
+    recurrence?: { everyNWeeks?: number; occurrences?: number };
   };
   const tz = ev.timeZone || "Asia/Tokyo";
   const fmt = (iso?: string) => {
@@ -171,10 +172,15 @@ function BookingSummary({ input }: { input: unknown }) {
       <span className="text-kumo-default break-all">{value}</span>
     </div>
   );
+  const recur = ev.recurrence;
+  const recurText = recur
+    ? `${recur.everyNWeeks === 1 ? "毎週" : `${recur.everyNWeeks}週ごと`}・全${recur.occurrences}回`
+    : null;
   return (
     <div className="space-y-1">
       {row("件名", ev.title || "（無題）")}
       {row("日時", `${fmt(ev.startISO)} 〜 ${fmt(ev.endISO)}`)}
+      {recurText && row("繰り返し", recurText)}
       {row("参加者", ev.attendees?.length ? ev.attendees.join("、") : "なし")}
       {row("Meet", ev.addMeet === false ? "なし" : "あり")}
     </div>

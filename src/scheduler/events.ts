@@ -18,19 +18,29 @@ export interface EventDraft {
   timeZone?: string;
   description?: string;
   addMeet?: boolean;
+  /**
+   * 定例の場合の繰り返し設定。指定すると Google の繰り返し（RRULE）で
+   * 1つの定例イベントとして作成する（単発を複数作らない）。
+   * startISO は初回。everyNWeeks=1 毎週 / 2 隔週、occurrences は回数。
+   */
+  recurrence?: { everyNWeeks: number; occurrences: number };
 }
 
 /**
  * 予約の決定的 id（Google event id, base32hex）。
- * 同じ予約（主催者＋開始＋終了＋参加者集合＋タイトル）からは常に同じ id を生成し、
- * リトライ時の二重作成を 409 で弾けるようにする。参加者の順序には依存しない。
+ * 同じ予約（主催者＋開始＋終了＋タイトル＋繰り返し＋参加者集合）からは常に同じ id を
+ * 生成し、リトライ時の二重作成を 409 で弾けるようにする。参加者の順序には依存しない。
  */
 export async function buildEventId(draft: EventDraft): Promise<string> {
+  const recur = draft.recurrence
+    ? `${draft.recurrence.everyNWeeks}x${draft.recurrence.occurrences}`
+    : "once";
   const key = [
     draft.organizer,
     draft.startISO,
     draft.endISO,
     draft.title,
+    recur,
     [...draft.attendees].sort().join(",")
   ].join("|");
   const digest = await crypto.subtle.digest(
@@ -50,6 +60,8 @@ export interface EventRequestBody {
   description?: string;
   start: { dateTime: string; timeZone: string };
   end: { dateTime: string; timeZone: string };
+  /** 定例の繰り返しルール（RRULE）。例: ["RRULE:FREQ=WEEKLY;INTERVAL=2;COUNT=6"]。 */
+  recurrence?: string[];
   attendees?: { email: string }[];
   conferenceData?: {
     createRequest: {
@@ -75,6 +87,11 @@ export function buildEventRequest(
     end: { dateTime: draft.endISO, timeZone },
     attendees: draft.attendees.map((email) => ({ email }))
   };
+  if (draft.recurrence) {
+    body.recurrence = [
+      `RRULE:FREQ=WEEKLY;INTERVAL=${draft.recurrence.everyNWeeks};COUNT=${draft.recurrence.occurrences}`
+    ];
+  }
   if (draft.description) {
     body.description = draft.description;
   }

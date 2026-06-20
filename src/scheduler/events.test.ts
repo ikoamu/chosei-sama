@@ -88,6 +88,30 @@ await (async () => {
     check("Meet: addMeet false で conferenceData なし", !noMeet.conferenceData);
   }
 
+  // --- buildEventRequest: 定例は繰り返し(RRULE)で1イベントに -----------------
+  {
+    const recurring = buildEventRequest(
+      { ...base, recurrence: { everyNWeeks: 2, occurrences: 6 } },
+      "evtR"
+    );
+    check(
+      "繰り返し: RRULE で隔週6回",
+      recurring.recurrence?.[0] === "RRULE:FREQ=WEEKLY;INTERVAL=2;COUNT=6",
+      JSON.stringify(recurring.recurrence)
+    );
+    const single = buildEventRequest(base, "evtS");
+    check("単発: recurrence なし", !single.recurrence);
+  }
+
+  // --- buildEventId: 定例と単発で別 id ---------------------------------------
+  {
+    const recurringId = await buildEventId({
+      ...base,
+      recurrence: { everyNWeeks: 2, occurrences: 6 }
+    });
+    check("差分: 繰り返し有無で別 id", recurringId !== id1);
+  }
+
   console.log(`\n=== ${pass} passed, ${fail} failed ===`);
   if (fail > 0) {
     process.exit(1);

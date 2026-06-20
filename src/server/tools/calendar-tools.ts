@@ -216,7 +216,20 @@ export function calendarTools(agent: ChatAgent) {
         addMeet: z
           .boolean()
           .default(true)
-          .describe("Google Meet リンクを付けるか（既定: 付ける）")
+          .describe("Google Meet リンクを付けるか（既定: 付ける）"),
+        recurrence: z
+          .object({
+            everyNWeeks: z
+              .number()
+              .int()
+              .positive()
+              .describe("開催頻度（1=毎週, 2=隔週）"),
+            occurrences: z.number().int().positive().describe("開催回数")
+          })
+          .optional()
+          .describe(
+            "定例のとき指定。Google の繰り返しで1つの定例予定として作成する。startISO は初回。単発のときは省略"
+          )
       }),
       execute: async ({
         title,
@@ -224,7 +237,8 @@ export function calendarTools(agent: ChatAgent) {
         endISO,
         attendees,
         description,
-        addMeet
+        addMeet,
+        recurrence
       }) => {
         const accessToken = await agent.getCalendarAccessToken();
         if (!accessToken) {
@@ -239,7 +253,8 @@ export function calendarTools(agent: ChatAgent) {
             attendees,
             timeZone: TIME_ZONE,
             description,
-            addMeet
+            addMeet,
+            recurrence
           });
           return {
             created: true,
