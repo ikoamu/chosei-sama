@@ -9,8 +9,8 @@ import {
   BugIcon,
   ChatCircleDotsIcon,
   CircleIcon,
-  SignOutIcon,
-  TrashIcon
+  PlusIcon,
+  SignOutIcon
 } from "@phosphor-icons/react";
 import { ThemeToggle } from "./ThemeToggle";
 import type { AuthUser } from "../types";
@@ -61,10 +61,10 @@ export function ChatHeader({
           <ThemeToggle />
           <Button
             variant="secondary"
-            icon={<TrashIcon size={16} />}
+            icon={<PlusIcon size={16} />}
             onClick={onClear}
           >
-            Clear
+            新しい調整
           </Button>
           <div className="flex items-center gap-2 ml-2 pl-2 border-l border-kumo-line">
             <img
