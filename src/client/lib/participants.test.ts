@@ -48,31 +48,13 @@ const sato: DirectoryPerson = { name: "佐藤", email: "sato@esm.co.jp" };
   check("自分だけ: 他者は記載されない", !msg.includes(tanaka.email), msg);
 }
 
-// --- 定期調整のシグナル -----------------------------------------------------
-{
-  const msg = buildScheduleMessage([tanaka, sato], self, {
-    kind: "recurring",
-    details: ""
-  });
-  check("定期: 定期開催と明示", msg.includes("これは定期開催の調整です"), msg);
-}
-
-// --- 単発調整のシグナル -----------------------------------------------------
-{
-  const msg = buildScheduleMessage([tanaka], self, {
-    kind: "single",
-    details: ""
-  });
-  check("単発: 単発と明示", msg.includes("これは単発の調整です"), msg);
-  check("単発: 定期とは書かない", !msg.includes("定期開催"), msg);
-}
-
 // --- 希望条件あり -----------------------------------------------------------
 {
-  const msg = buildScheduleMessage([tanaka], self, {
-    kind: "recurring",
-    details: "隔週1h、来月から6回、午後希望"
-  });
+  const msg = buildScheduleMessage(
+    [tanaka],
+    self,
+    "隔週1h、来月から6回、午後希望"
+  );
   check(
     "条件あり: 希望条件として挿入",
     msg.includes("希望条件: 隔週1h、来月から6回、午後希望"),
@@ -82,10 +64,7 @@ const sato: DirectoryPerson = { name: "佐藤", email: "sato@esm.co.jp" };
 
 // --- 希望条件なし（空・空白のみ）--------------------------------------------
 {
-  const msg = buildScheduleMessage([tanaka], self, {
-    kind: "single",
-    details: "   "
-  });
+  const msg = buildScheduleMessage([tanaka], self, "   ");
   check("条件なし: 希望条件は挿入しない", !msg.includes("希望条件"), msg);
 }
 

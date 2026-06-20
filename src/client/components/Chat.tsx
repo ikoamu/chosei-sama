@@ -20,10 +20,7 @@ import { useChatSubmit } from "use-chat-submit";
 import type { ChatAgent } from "../../server/chat-agent";
 import type { AuthUser } from "../types";
 import type { DirectoryPerson } from "../lib/directory";
-import {
-  buildScheduleMessage,
-  type ScheduleOptions
-} from "../lib/participants";
+import { buildScheduleMessage } from "../lib/participants";
 import { ChatHeader } from "./ChatHeader";
 import { MessageList } from "./MessageList";
 import { ParticipantPicker } from "./ParticipantPicker";
@@ -102,13 +99,13 @@ export function Chat({ user }: { user: AuthUser }) {
   }, [isStreaming, textareaRef]);
 
   const startWithParticipants = useCallback(
-    (people: DirectoryPerson[], options: ScheduleOptions) => {
+    (people: DirectoryPerson[], details: string) => {
       sendMessage({
         role: "user",
         parts: [
           {
             type: "text",
-            text: buildScheduleMessage(people, user, options)
+            text: buildScheduleMessage(people, user, details)
           }
         ]
       });
