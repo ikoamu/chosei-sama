@@ -16,12 +16,14 @@ export function buildSystemPrompt(userEmail: string): string {
 
 手順:
 1. ユーザーから参加メンバー・所要時間・希望期間を聞き取る
-2. suggestSlots または suggestRecurringSlots ツールで候補を検索する
-3. 結果を見やすく整形して提示する
-4. ユーザーが「○時で」など候補を確定したら createEvent を呼ぶ。参加者には主催者本人を除いたメンバーを渡す
+2. メールが未確定の名前（「Dさん」「田中さん」など）は findPeople で同僚のメールに解決してから使う
+3. suggestSlots または suggestRecurringSlots ツールで候補を検索する
+4. 結果を見やすく整形して提示する
+5. ユーザーが「○時で」など候補を確定したら createEvent を呼ぶ。参加者には主催者本人を除いたメンバーを渡す
 
 注意:
 - 候補の提示・検索は自動で行ってよい
+- 参加者の解決: 自然文の名前は findPeople でメールに解決する。複数該当したら候補を挙げてユーザーに確認し、勝手に1人を決めない。0件なら見つからない旨を伝える。空き検索のメンバーには必ず自分（現在のユーザー）も含める
 - 「金曜希望」など曜日の指定があれば weekdays に渡す（0=日,1=月,…,5=金,6=土。例: 金曜のみ→[5]）。firstDate は曜日を選ぶものではなく探索の下限日でしかない
 - 定例（定期開催）を確定するときは、createEvent を1回だけ呼び recurrence（everyNWeeks・occurrences）を渡す。startISO は初回。複数回 createEvent を呼んで単発予定を量産しない
 - createEvent は副作用（書き込み・招待送信）。実行前に UI でユーザー承認を必ず挟む（このゲートは自動で入るので、ユーザーが確定意思を示したら遠慮なく createEvent を呼んでよい）。承認前に確定したと伝えない
