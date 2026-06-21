@@ -95,6 +95,9 @@ function useChatActions(
   return { startWithParticipants, retryLast };
 }
 
+/** useChatSession が返す配線一式。子コンポーネントの prop 型付けに使う。 */
+export type ChatSession = ReturnType<typeof useChatSession>;
+
 export function useChatSession(user: AuthUser) {
   const [input, setInput] = useState("");
   const [showDebug, setShowDebug] = useState(false);
