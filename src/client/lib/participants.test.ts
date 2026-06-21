@@ -1,74 +1,46 @@
+import { describe, it, expect } from "vitest";
 import { buildScheduleMessage } from "./participants.ts";
 import type { DirectoryPerson } from "./directory.ts";
 
-let pass = 0;
-let fail = 0;
-function check(name: string, cond: boolean, extra = "") {
-  if (cond) {
-    pass++;
-    console.log(`  ok  - ${name}`);
-  } else {
-    fail++;
-    console.log(`  XX  - ${name}  ${extra}`);
-  }
-}
-
 const self = { name: "青木翔太郎", email: "self@esm.co.jp" };
+const selfPerson: DirectoryPerson = { name: self.name, email: self.email };
 const tanaka: DirectoryPerson = { name: "田中", email: "tanaka@esm.co.jp" };
 const sato: DirectoryPerson = { name: "佐藤", email: "sato@esm.co.jp" };
 
-// --- 自分を含む調整 ---------------------------------------------------------
-{
-  const selfPerson: DirectoryPerson = { name: self.name, email: self.email };
-  const msg = buildScheduleMessage([selfPerson, tanaka], self);
-  check("自分を含む: 自分の email が入る", msg.includes(self.email), msg);
-  check("自分を含む: 他者の email が入る", msg.includes(tanaka.email), msg);
-  check("自分を含む: 主催はあなたと明示", msg.includes("主催はあなた"), msg);
-}
+describe("buildScheduleMessage", () => {
+  it("自分を含むと主催を明示し、参加者の email を列挙する", () => {
+    const msg = buildScheduleMessage([selfPerson, tanaka], self);
+    expect(msg).toContain(self.email);
+    expect(msg).toContain(tanaka.email);
+    expect(msg).toContain("主催はあなた");
+  });
 
-// --- selected に自分が含まれない場合の防御的分岐（UI からは到達しない）-------
-{
-  const msg = buildScheduleMessage([tanaka, sato], self);
-  check("除外: 他者の email が入る", msg.includes(tanaka.email), msg);
-  check("除外: 自分の email は含まれない", !msg.includes(self.email), msg);
-  check("除外: 主催明示はしない", !msg.includes("主催はあなた"), msg);
-  check(
-    "除外: 自分は参加しないと明記",
-    msg.includes("私自身は参加しません"),
-    msg
-  );
-}
+  it("selected に自分が含まれない場合は『参加しない』と明記（防御的分岐）", () => {
+    const msg = buildScheduleMessage([tanaka, sato], self);
+    expect(msg).toContain(tanaka.email);
+    expect(msg).not.toContain(self.email);
+    expect(msg).not.toContain("主催はあなた");
+    expect(msg).toContain("私自身は参加しません");
+  });
 
-// --- 自分だけの調整 ---------------------------------------------------------
-{
-  const selfPerson: DirectoryPerson = { name: self.name, email: self.email };
-  const msg = buildScheduleMessage([selfPerson], self);
-  check("自分だけ: 自分の email が入る", msg.includes(self.email), msg);
-  check("自分だけ: 主催はあなたと明示", msg.includes("主催はあなた"), msg);
-  check("自分だけ: 他者は記載されない", !msg.includes(tanaka.email), msg);
-}
+  it("自分だけでも主催を明示し、他者は載らない", () => {
+    const msg = buildScheduleMessage([selfPerson], self);
+    expect(msg).toContain(self.email);
+    expect(msg).toContain("主催はあなた");
+    expect(msg).not.toContain(tanaka.email);
+  });
 
-// --- 希望条件あり -----------------------------------------------------------
-{
-  const msg = buildScheduleMessage(
-    [tanaka],
-    self,
-    "隔週1h、来月から6回、午後希望"
-  );
-  check(
-    "条件あり: 希望条件として挿入",
-    msg.includes("希望条件: 隔週1h、来月から6回、午後希望"),
-    msg
-  );
-}
+  it("details があれば希望条件として挿入する", () => {
+    const msg = buildScheduleMessage(
+      [tanaka],
+      self,
+      "隔週1h、来月から6回、午後希望"
+    );
+    expect(msg).toContain("希望条件: 隔週1h、来月から6回、午後希望");
+  });
 
-// --- 希望条件なし（空・空白のみ）--------------------------------------------
-{
-  const msg = buildScheduleMessage([tanaka], self, "   ");
-  check("条件なし: 希望条件は挿入しない", !msg.includes("希望条件"), msg);
-}
-
-console.log(`\n=== ${pass} passed, ${fail} failed ===`);
-if (fail > 0) {
-  process.exit(1);
-}
+  it("details が空白のみなら希望条件を挿入しない", () => {
+    const msg = buildScheduleMessage([tanaka], self, "   ");
+    expect(msg).not.toContain("希望条件");
+  });
+});

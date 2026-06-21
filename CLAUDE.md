@@ -26,8 +26,8 @@ src/
     slots.ts              # commonFree / findSlots / scoreSlot
     freebusy.ts           # queryFreeBusy / parseFreeBusyResponse（FreeBusy 照会）
     suggest.ts            # suggestSlots（単発）/ suggestRecurringSlots（定期）
-    intervals.test.ts     # 区間・tz ロジックの単体テスト（13件）
-    freebusy.test.ts      # FreeBusy レスポンス分解の単体テスト
+    intervals.test.ts     # 区間・tz ロジックの単体テスト（vitest）
+    freebusy.test.ts      # FreeBusy レスポンス分解の単体テスト（vitest）
   server/                 # Worker / Durable Object 側
     index.ts              # Worker エントリ（wrangler main）。ルーティング＋ChatAgent re-export
     chat-agent.ts         # ChatAgent（DO）。onConnect で認証確定＋refresh_token保持、
@@ -92,7 +92,7 @@ vite.config.ts            # Vite ビルド設定
 ## コマンド
 
 - 開発サーバ: `pnpm dev`
-- コアのテスト: `pnpm exec tsx src/scheduler/intervals.test.ts`（FreeBusy 分解は `src/scheduler/freebusy.test.ts`）
+- テスト: `pnpm test`（vitest, node 環境）。テストは `src/**/*.test.ts`
 - lint / format / 型チェック: `pnpm check`
 - コード品質の傾向確認: `pnpm quality`（fallow）。**スコアは鵜呑みにしない** — `@babel/plugin-proposal-decorators` / `@rolldown/plugin-babel`（`@callable` デコレータのビルドに必要）や `ChatAgent` のライフサイクル（`onConnect`/`onStart`/`onChatMessage` 等、SDK が呼ぶ）は「未使用」と誤検知される。これらは削除しない。
 - デプロイ: main push で Cloudflare Workers Builds が自動実行。手動: `pnpm deploy`（= `vite build && wrangler deploy`）
