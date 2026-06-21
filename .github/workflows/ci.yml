@@ -1,0 +1,42 @@
+name: CI
+
+# PR と main への push でマージ前ゲートを回す。
+# ブランチ保護の Required status checks に "test" ジョブを指定すると、
+# 失敗時にマージ不可になる（保護設定は別途リポジトリ設定で行う）。
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# 同一 PR/ブランチで新しい push があれば古い実行を打ち切る。
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.8.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # oxfmt --check && oxlint src/ && tsc
+      - name: Check (format / lint / types)
+        run: pnpm check
+
+      # vitest run
+      - name: Test
+        run: pnpm test
