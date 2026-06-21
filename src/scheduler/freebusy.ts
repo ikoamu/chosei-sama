@@ -43,24 +43,29 @@ export function parseFreeBusyResponse(data: FreeBusyResponse): FreeBusyResult {
   return { busy, unreadable };
 }
 
+/** FreeBusy 照会のパラメータ。 */
+export interface QueryFreeBusyOptions {
+  accessToken: string;
+  calendarIds: string[];
+  timeMin: number;
+  timeMax: number;
+  timeZone: string;
+}
+
 export async function queryFreeBusy(
-  accessToken: string,
-  calendarIds: string[],
-  timeMin: number,
-  timeMax: number,
-  timeZone: string
+  opts: QueryFreeBusyOptions
 ): Promise<FreeBusyResult> {
   const res = await fetch("https://www.googleapis.com/calendar/v3/freeBusy", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${accessToken}`,
+      Authorization: `Bearer ${opts.accessToken}`,
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      timeMin: new Date(timeMin).toISOString(),
-      timeMax: new Date(timeMax).toISOString(),
-      timeZone,
-      items: calendarIds.map((id) => ({ id }))
+      timeMin: new Date(opts.timeMin).toISOString(),
+      timeMax: new Date(opts.timeMax).toISOString(),
+      timeZone: opts.timeZone,
+      items: opts.calendarIds.map((id) => ({ id }))
     })
   });
   if (!res.ok) {

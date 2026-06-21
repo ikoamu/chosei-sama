@@ -24,19 +24,23 @@ export function workingWindowsInRange(
     const p = localParts(cursor, tz);
     if (allowed.includes(p.weekday)) {
       const ws = zonedWallToUtc(
-        p.year,
-        p.month,
-        p.day,
-        wh.startHour,
-        wh.startMinute ?? 0,
+        {
+          year: p.year,
+          month: p.month,
+          day: p.day,
+          hour: wh.startHour,
+          minute: wh.startMinute ?? 0
+        },
         tz
       );
       const we = zonedWallToUtc(
-        p.year,
-        p.month,
-        p.day,
-        wh.endHour,
-        wh.endMinute ?? 0,
+        {
+          year: p.year,
+          month: p.month,
+          day: p.day,
+          hour: wh.endHour,
+          minute: wh.endMinute ?? 0
+        },
         tz
       );
       const s = Math.max(ws, timeMin);
