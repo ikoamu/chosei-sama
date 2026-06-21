@@ -7,6 +7,7 @@
 
 import { routeAgentRequest } from "agents";
 import { handleOAuthRoute, verifySession } from "./auth";
+import { isOwnAgentPath } from "./auth/agent-access";
 
 export { ChatAgent } from "./chat-agent";
 
@@ -25,6 +26,11 @@ export default {
       );
       if (!session) {
         return new Response("Unauthorized", { status: 401 });
+      }
+      // 自分のメールで名付けられた自分の Agent 以外には接続させない
+      // （他人の DO 名に接続してチャット履歴等を覗くのを防ぐ）。
+      if (!isOwnAgentPath(url.pathname, session.email)) {
+        return new Response("Forbidden", { status: 403 });
       }
     }
 
