@@ -1,1 +1,11 @@
+# oxfmt が整形チェック（pnpm check / pnpm format）の対象から外すファイル。
+# oxfmt は --ignore-path 未指定時に .gitignore と .prettierignore を自動で読む。
+# （このリポジトリは prettier を使っていないが、oxfmt の既定 ignore ファイル名がこれ）
+
+# 生成物（wrangler が自動生成。手書きソースではない）
 env.d.ts
+
+# チーム共有するがプロジェクトのソースではない開発ツール資産
+.agents/
+.claude/
+skills-lock.json
