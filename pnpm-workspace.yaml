@@ -1,0 +1,14 @@
+# 依存パッケージの postinstall ビルドスクリプトの許可設定。
+# 既定は全て false（実行しない）。これらはプレビルドバイナリで動くため不要。
+# 必要になったら個別に true へ。
+allowBuilds:
+  "@mongodb-js/zstd": false
+  core-js-pure: false
+  esbuild: false
+  node-liblzma: false
+  sharp: false
+  workerd: false
+
+# 公開直後の新バージョンはインストールしない（サプライチェーン対策）
+# 単位は分。2880 = 2日 経過したバージョンのみ許可する。
+minimumReleaseAge: 2880
