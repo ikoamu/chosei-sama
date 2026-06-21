@@ -15,6 +15,132 @@ import {
   XCircleIcon
 } from "@phosphor-icons/react";
 
+/** 汎用ツールの完了表示（createEvent 以外）。 */
+function ToolResult({
+  toolName,
+  output
+}: {
+  toolName: string;
+  output: unknown;
+}) {
+  return (
+    <div className="flex justify-start">
+      <Surface className="max-w-[85%] px-4 py-2.5 rounded-xl ring ring-kumo-line">
+        <div className="flex items-center gap-2 mb-1">
+          <GearIcon size={14} className="text-kumo-inactive" />
+          <Text size="xs" variant="secondary" bold>
+            {toolName}
+          </Text>
+          <Badge variant="secondary">Done</Badge>
+        </div>
+        <div className="font-mono">
+          <Text size="xs" variant="secondary">
+            {JSON.stringify(output, null, 2)}
+          </Text>
+        </div>
+      </Surface>
+    </div>
+  );
+}
+
+/** 承認待ちカード（Approve / Reject ボタン付き）。 */
+function ToolApproval({
+  toolName,
+  input,
+  approvalId,
+  addToolApprovalResponse
+}: {
+  toolName: string;
+  input: unknown;
+  approvalId?: string;
+  addToolApprovalResponse: (response: {
+    id: string;
+    approved: boolean;
+  }) => void;
+}) {
+  const respond = (approved: boolean) => {
+    if (approvalId) {
+      addToolApprovalResponse({ id: approvalId, approved });
+    }
+  };
+  return (
+    <div className="flex justify-start">
+      <Surface className="max-w-[85%] px-4 py-3 rounded-xl ring-2 ring-kumo-warning">
+        <div className="flex items-center gap-2 mb-2">
+          <GearIcon size={14} className="text-kumo-warning" />
+          <Text size="sm" bold>
+            {toolName === "createEvent"
+              ? "この内容で予約しますか？"
+              : `Approval needed: ${toolName}`}
+          </Text>
+        </div>
+        <div className="mb-3">
+          {toolName === "createEvent" ? (
+            <BookingSummary input={input} />
+          ) : (
+            <Text size="xs" variant="secondary">
+              <span className="font-mono">
+                {JSON.stringify(input, null, 2)}
+              </span>
+            </Text>
+          )}
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant="primary"
+            size="sm"
+            icon={<CheckCircleIcon size={14} />}
+            onClick={() => respond(true)}
+          >
+            Approve
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={<XCircleIcon size={14} />}
+            onClick={() => respond(false)}
+          >
+            Reject
+          </Button>
+        </div>
+      </Surface>
+    </div>
+  );
+}
+
+/** 却下／拒否されたツール呼び出しの表示。 */
+function ToolRejected({ toolName }: { toolName: string }) {
+  return (
+    <div className="flex justify-start">
+      <Surface className="max-w-[85%] px-4 py-2.5 rounded-xl ring ring-kumo-line">
+        <div className="flex items-center gap-2">
+          <XCircleIcon size={14} className="text-kumo-danger" />
+          <Text size="xs" variant="secondary" bold>
+            {toolName}
+          </Text>
+          <Badge variant="secondary">Rejected</Badge>
+        </div>
+      </Surface>
+    </div>
+  );
+}
+
+/** 実行中のツール呼び出しの表示。 */
+function ToolRunning({ toolName }: { toolName: string }) {
+  return (
+    <div className="flex justify-start">
+      <Surface className="max-w-[85%] px-4 py-2.5 rounded-xl ring ring-kumo-line">
+        <div className="flex items-center gap-2">
+          <GearIcon size={14} className="text-kumo-inactive animate-spin" />
+          <Text size="xs" variant="secondary">
+            Running {toolName}...
+          </Text>
+        </div>
+      </Surface>
+    </div>
+  );
+}
+
 export function ToolPartView({
   part,
   addToolApprovalResponse
@@ -32,82 +158,22 @@ export function ToolPartView({
 
   // Completed
   if (part.state === "output-available") {
-    if (toolName === "createEvent") {
-      return <BookingResult output={part.output} />;
-    }
-    return (
-      <div className="flex justify-start">
-        <Surface className="max-w-[85%] px-4 py-2.5 rounded-xl ring ring-kumo-line">
-          <div className="flex items-center gap-2 mb-1">
-            <GearIcon size={14} className="text-kumo-inactive" />
-            <Text size="xs" variant="secondary" bold>
-              {toolName}
-            </Text>
-            <Badge variant="secondary">Done</Badge>
-          </div>
-          <div className="font-mono">
-            <Text size="xs" variant="secondary">
-              {JSON.stringify(part.output, null, 2)}
-            </Text>
-          </div>
-        </Surface>
-      </div>
+    return toolName === "createEvent" ? (
+      <BookingResult output={part.output} />
+    ) : (
+      <ToolResult toolName={toolName} output={part.output} />
     );
   }
 
   // Needs approval
   if ("approval" in part && part.state === "approval-requested") {
-    const approvalId = (part.approval as { id?: string })?.id;
     return (
-      <div className="flex justify-start">
-        <Surface className="max-w-[85%] px-4 py-3 rounded-xl ring-2 ring-kumo-warning">
-          <div className="flex items-center gap-2 mb-2">
-            <GearIcon size={14} className="text-kumo-warning" />
-            <Text size="sm" bold>
-              {toolName === "createEvent"
-                ? "この内容で予約しますか？"
-                : `Approval needed: ${toolName}`}
-            </Text>
-          </div>
-          <div className="mb-3">
-            {toolName === "createEvent" ? (
-              <BookingSummary input={part.input} />
-            ) : (
-              <Text size="xs" variant="secondary">
-                <span className="font-mono">
-                  {JSON.stringify(part.input, null, 2)}
-                </span>
-              </Text>
-            )}
-          </div>
-          <div className="flex gap-2">
-            <Button
-              variant="primary"
-              size="sm"
-              icon={<CheckCircleIcon size={14} />}
-              onClick={() => {
-                if (approvalId) {
-                  addToolApprovalResponse({ id: approvalId, approved: true });
-                }
-              }}
-            >
-              Approve
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              icon={<XCircleIcon size={14} />}
-              onClick={() => {
-                if (approvalId) {
-                  addToolApprovalResponse({ id: approvalId, approved: false });
-                }
-              }}
-            >
-              Reject
-            </Button>
-          </div>
-        </Surface>
-      </div>
+      <ToolApproval
+        toolName={toolName}
+        input={part.input}
+        approvalId={(part.approval as { id?: string })?.id}
+        addToolApprovalResponse={addToolApprovalResponse}
+      />
     );
   }
 
@@ -117,35 +183,12 @@ export function ToolPartView({
     ("approval" in part &&
       (part.approval as { approved?: boolean })?.approved === false)
   ) {
-    return (
-      <div className="flex justify-start">
-        <Surface className="max-w-[85%] px-4 py-2.5 rounded-xl ring ring-kumo-line">
-          <div className="flex items-center gap-2">
-            <XCircleIcon size={14} className="text-kumo-danger" />
-            <Text size="xs" variant="secondary" bold>
-              {toolName}
-            </Text>
-            <Badge variant="secondary">Rejected</Badge>
-          </div>
-        </Surface>
-      </div>
-    );
+    return <ToolRejected toolName={toolName} />;
   }
 
   // Executing
   if (part.state === "input-available" || part.state === "input-streaming") {
-    return (
-      <div className="flex justify-start">
-        <Surface className="max-w-[85%] px-4 py-2.5 rounded-xl ring ring-kumo-line">
-          <div className="flex items-center gap-2">
-            <GearIcon size={14} className="text-kumo-inactive animate-spin" />
-            <Text size="xs" variant="secondary">
-              Running {toolName}...
-            </Text>
-          </div>
-        </Surface>
-      </div>
-    );
+    return <ToolRunning toolName={toolName} />;
   }
 
   return null;
