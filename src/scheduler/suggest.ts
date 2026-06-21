@@ -44,13 +44,13 @@ export async function suggestSlots(
   const tMax =
     typeof opts.timeMax === "number" ? opts.timeMax : opts.timeMax.getTime();
 
-  const { busy, unreadable } = await queryFreeBusy(
-    opts.accessToken,
-    opts.calendarIds,
-    tMin,
-    tMax,
-    opts.preferences.timeZone
-  );
+  const { busy, unreadable } = await queryFreeBusy({
+    accessToken: opts.accessToken,
+    calendarIds: opts.calendarIds,
+    timeMin: tMin,
+    timeMax: tMax,
+    timeZone: opts.preferences.timeZone
+  });
   // 1人でも読めなければ「全員空いている」を保証できないため候補を出さない。
   if (unreadable.length > 0) {
     return { candidates: [], unreadable };
@@ -86,6 +86,99 @@ export interface SuggestRecurringResult {
   unreadable: string[];
 }
 
+const DAY = 24 * 60 * 60 * 1000;
+const WEEK = 7 * DAY;
+
+/** 定期候補の探索・検証に必要な文脈をまとめたもの。 */
+interface RecurringContext {
+  tz: string;
+  mergedBusy: Interval[];
+  occurrences: number;
+  everyNWeeks: number;
+  durationMs: number;
+  durationMin: number;
+  bufferMs: number;
+  startMin: number; // 勤務開始（0時からの分）
+  endMin: number; // 勤務終了（0時からの分）
+  gran: number; // 探索の粒度（分）
+  prefs: SlotPreferences;
+}
+
+/** first 以降で最初に weekday に当たる「その日の 0 時」。無ければ -1。 */
+function firstOccurrenceDayOnOrAfter(
+  first: number,
+  weekday: number,
+  tz: string
+): number {
+  const base = startOfLocalDay(first, tz);
+  for (let d = 0; d < 7; d++) {
+    const dayStart = startOfLocalDay(first + d * DAY, tz);
+    if (localParts(dayStart, tz).weekday === weekday && dayStart >= base) {
+      return dayStart;
+    }
+  }
+  return -1;
+}
+
+/**
+ * firstDay を起点に everyNWeeks 間隔で occurrences 回ぶんの枠を作る。
+ * すべて空いていれば各オカレンスの Interval を、1つでも埋まっていれば null を返す。
+ */
+function freeOccurrences(
+  firstDay: number,
+  hour: number,
+  minute: number,
+  ctx: RecurringContext
+): Interval[] | null {
+  const occ: Interval[] = [];
+  for (let k = 0; k < ctx.occurrences; k++) {
+    const dayMs = startOfLocalDay(
+      firstDay + k * ctx.everyNWeeks * WEEK,
+      ctx.tz
+    );
+    const p = localParts(dayMs, ctx.tz);
+    const s = zonedWallToUtc(
+      { year: p.year, month: p.month, day: p.day, hour, minute },
+      ctx.tz
+    );
+    const slot: Interval = { start: s, end: s + ctx.durationMs };
+    const padded: Interval = {
+      start: slot.start - ctx.bufferMs,
+      end: slot.end + ctx.bufferMs
+    };
+    if (ctx.mergedBusy.some((b) => overlaps(padded, b))) {
+      return null;
+    }
+    occ.push(slot);
+  }
+  return occ;
+}
+
+/** 1曜日について、勤務時間内の各開始時刻を試し、成立した定期候補を返す。 */
+function candidatesForWeekday(
+  weekday: number,
+  firstDay: number,
+  ctx: RecurringContext
+): RecurringCandidate[] {
+  const out: RecurringCandidate[] = [];
+  for (let m = ctx.startMin; m + ctx.durationMin <= ctx.endMin; m += ctx.gran) {
+    const h = Math.floor(m / 60);
+    const min = m % 60;
+    const occ = freeOccurrences(firstDay, h, min, ctx);
+    if (!occ) {
+      continue;
+    }
+    out.push({
+      weekday,
+      startISOFirst: new Date(occ[0].start).toISOString(),
+      localTime: `${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")}`,
+      occurrenceStartsISO: occ.map((o) => new Date(o.start).toISOString()),
+      score: scoreSlot(occ[0].start, ctx.prefs)
+    });
+  }
+  return out;
+}
+
 export async function suggestRecurringSlots(
   opts: SuggestRecurringOptions
 ): Promise<SuggestRecurringResult> {
@@ -95,87 +188,43 @@ export async function suggestRecurringSlots(
     typeof opts.firstDate === "number"
       ? opts.firstDate
       : opts.firstDate.getTime();
-  const WEEK = 7 * 24 * 60 * 60 * 1000;
   // 全オカレンスを覆う期間を一度に照会する。
   const horizonEnd = first + (opts.occurrences * opts.everyNWeeks + 1) * WEEK;
 
-  const { busy, unreadable } = await queryFreeBusy(
-    opts.accessToken,
-    opts.calendarIds,
-    first,
-    horizonEnd,
-    tz
-  );
+  const { busy, unreadable } = await queryFreeBusy({
+    accessToken: opts.accessToken,
+    calendarIds: opts.calendarIds,
+    timeMin: first,
+    timeMax: horizonEnd,
+    timeZone: tz
+  });
   if (unreadable.length > 0) {
     return { candidates: [], unreadable };
   }
-  const mergedBusy = mergeIntervals([...busy.values()].flat());
 
   const wh = prefs.workingHours ?? { startHour: 9, endHour: 18 };
   const allowed = prefs.allowedWeekdays ?? [1, 2, 3, 4, 5];
-  const gran = prefs.granularityMinutes ?? 30;
-  const dur = prefs.durationMinutes;
-  const bufferMs = (prefs.bufferMinutes ?? 0) * 60_000;
+  const ctx: RecurringContext = {
+    tz,
+    mergedBusy: mergeIntervals([...busy.values()].flat()),
+    occurrences: opts.occurrences,
+    everyNWeeks: opts.everyNWeeks,
+    durationMs: prefs.durationMinutes * 60_000,
+    durationMin: prefs.durationMinutes,
+    bufferMs: (prefs.bufferMinutes ?? 0) * 60_000,
+    startMin: wh.startHour * 60 + (wh.startMinute ?? 0),
+    endMin: wh.endHour * 60 + (wh.endMinute ?? 0),
+    gran: prefs.granularityMinutes ?? 30,
+    prefs
+  };
 
   const results: RecurringCandidate[] = [];
-
   for (const weekday of allowed) {
-    // この曜日の最初の開催日（first 以降）を求める。
-    let firstOccurrenceDay = -1;
-    for (let d = 0; d < 7; d++) {
-      const dayStart = startOfLocalDay(first + d * 24 * 60 * 60 * 1000, tz);
-      if (
-        localParts(dayStart, tz).weekday === weekday &&
-        dayStart >= startOfLocalDay(first, tz)
-      ) {
-        firstOccurrenceDay = dayStart;
-        break;
-      }
-    }
-    if (firstOccurrenceDay < 0) {
+    const firstDay = firstOccurrenceDayOnOrAfter(first, weekday, tz);
+    if (firstDay < 0) {
       continue;
     }
-
-    const startMin = wh.startHour * 60 + (wh.startMinute ?? 0);
-    const endMin = wh.endHour * 60 + (wh.endMinute ?? 0);
-
-    for (let m = startMin; m + dur <= endMin; m += gran) {
-      const h = Math.floor(m / 60);
-      const min = m % 60;
-
-      // 各オカレンスの区間を作り、全部が空いているか確認。
-      const occ: Interval[] = [];
-      let allFree = true;
-      for (let k = 0; k < opts.occurrences; k++) {
-        const dayMs = startOfLocalDay(
-          firstOccurrenceDay + k * opts.everyNWeeks * WEEK,
-          tz
-        );
-        const p = localParts(dayMs, tz);
-        const s = zonedWallToUtc(p.year, p.month, p.day, h, min, tz);
-        const slot: Interval = { start: s, end: s + dur * 60_000 };
-        const padded: Interval = {
-          start: slot.start - bufferMs,
-          end: slot.end + bufferMs
-        };
-        if (mergedBusy.some((b) => overlaps(padded, b))) {
-          allFree = false;
-          break;
-        }
-        occ.push(slot);
-      }
-      if (!allFree) {
-        continue;
-      }
-
-      results.push({
-        weekday,
-        startISOFirst: new Date(occ[0].start).toISOString(),
-        localTime: `${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")}`,
-        occurrenceStartsISO: occ.map((o) => new Date(o.start).toISOString()),
-        score: scoreSlot(occ[0].start, prefs)
-      });
-    }
+    results.push(...candidatesForWeekday(weekday, firstDay, ctx));
   }
 
   results.sort(

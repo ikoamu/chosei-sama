@@ -32,16 +32,24 @@ function tzOffsetMs(timeZone: string, date: Date): number {
   return asUTC - date.getTime();
 }
 
-/** tz のローカル壁時計時刻 (y, m, d, h, min) を UTC epoch ms に変換。 */
-export function zonedWallToUtc(
-  year: number,
-  month: number, // 1-12
-  day: number,
-  hour: number,
-  minute: number,
-  timeZone: string
-): number {
-  const guess = Date.UTC(year, month - 1, day, hour, minute);
+/** tz のローカル壁時計時刻。month は 1-12。 */
+export interface WallTime {
+  year: number;
+  month: number;
+  day: number;
+  hour: number;
+  minute: number;
+}
+
+/** tz のローカル壁時計時刻を UTC epoch ms に変換。 */
+export function zonedWallToUtc(wall: WallTime, timeZone: string): number {
+  const guess = Date.UTC(
+    wall.year,
+    wall.month - 1,
+    wall.day,
+    wall.hour,
+    wall.minute
+  );
   const offset = tzOffsetMs(timeZone, new Date(guess));
   return guess - offset;
 }
@@ -84,7 +92,10 @@ export function localParts(ms: number, timeZone: string) {
 /** tz における ms の「その日の 0 時」の UTC epoch ms。 */
 export function startOfLocalDay(ms: number, timeZone: string): number {
   const p = localParts(ms, timeZone);
-  return zonedWallToUtc(p.year, p.month, p.day, 0, 0, timeZone);
+  return zonedWallToUtc(
+    { year: p.year, month: p.month, day: p.day, hour: 0, minute: 0 },
+    timeZone
+  );
 }
 
 /** ローカル時刻に直したときの「時（小数）」。スコアリング用。 */
