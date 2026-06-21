@@ -10,7 +10,7 @@
  * partyserver と同じく pathname を「/」分割した3番目の要素がインスタンス名。
  * インスタンス名が無いパス（例: /agents/chat-agent）は undefined。
  */
-export function agentInstanceName(pathname: string): string | undefined {
+function agentInstanceName(pathname: string): string | undefined {
   const parts = pathname.split("/").filter(Boolean);
   if (parts[0] !== "agents" || !parts[2]) {
     return undefined;
