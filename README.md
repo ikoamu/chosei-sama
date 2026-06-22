@@ -9,7 +9,7 @@ Cloudflare Agents + Google Calendar FreeBusy API で動く。
 
 ```
 src/
-  shared/        # base64url など server / scheduler 共有のユーティリティ
+  shared/        # directory（People API 検索）など server / client 共有のユーティリティ
   scheduler/     # 提案エンジン（ランタイム非依存・テスト対象）
                  #   intervals / timezone / windows / slots / freebusy /
                  #   google-auth / suggest を index.ts のバレルで公開

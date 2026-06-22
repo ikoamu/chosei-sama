@@ -1,5 +1,5 @@
 // =============================================================================
-// base64url
+// server/auth/base64url
 // base64url 変換。サーバ側の認証で使う純粋関数：
 // セッション Cookie の HMAC 署名・検証（session.ts）と OAuth ID トークンの
 // デコード（google-oauth.ts）。Web 標準 API（btoa / atob / TextEncoder）のみに依存。
