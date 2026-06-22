@@ -100,7 +100,6 @@ export type ChatSession = ReturnType<typeof useChatSession>;
 
 export function useChatSession(user: AuthUser) {
   const [input, setInput] = useState("");
-  const [showDebug, setShowDebug] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { agent, connected } = useAgentConnection(user);
 
@@ -152,8 +151,6 @@ export function useChatSession(user: AuthUser) {
     connected,
     input,
     setInput,
-    showDebug,
-    setShowDebug,
     messages,
     status,
     error,

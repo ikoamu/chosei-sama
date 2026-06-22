@@ -4,6 +4,15 @@
 @source "../../node_modules/streamdown/dist/*.js";
 @source "../../node_modules/@streamdown/code/dist/*.js";
 
+/* ブランドカラーをヘッダーと同じ緑 (#07AF4A) に上書き。
+   primary ボタン（ログイン・送信・参加者追加・承認）が一括で緑になる。
+   hover はログアウトボタンと同様に「白 20% を重ねた薄い緑」相当 (#39BF6E)。 */
+:root,
+[data-theme="kumo"] {
+  --color-kumo-brand: #07af4a;
+  --color-kumo-brand-hover: #39bf6e;
+}
+
 html,
 body,
 #root {

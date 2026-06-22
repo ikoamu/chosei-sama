@@ -24,8 +24,6 @@ export function Chat({ user }: { user: AuthUser }) {
       <ChatHeader
         user={user}
         connected={connected}
-        showDebug={session.showDebug}
-        onToggleDebug={session.setShowDebug}
         onClear={session.clearHistory}
       />
 
@@ -48,7 +46,6 @@ export function Chat({ user }: { user: AuthUser }) {
 
           <MessageList
             messages={messages}
-            showDebug={session.showDebug}
             isStreaming={isStreaming}
             addToolApprovalResponse={session.addToolApprovalResponse}
           />

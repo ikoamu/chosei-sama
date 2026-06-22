@@ -4,7 +4,7 @@
 // =============================================================================
 
 import type { RefObject } from "react";
-import { Surface } from "@cloudflare/kumo";
+import { LayerCard } from "@cloudflare/kumo";
 import { GearIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
 import type { DirectoryPerson } from "../../lib/directory";
 import { PersonAvatar } from "./PersonAvatar";
@@ -53,7 +53,7 @@ export function SearchBox({
 
       {open && visibleResults.length > 0 && (
         <div className="absolute left-0 right-0 top-full mt-1 z-50">
-          <Surface className="rounded-lg ring ring-kumo-line shadow-lg overflow-hidden max-h-64 overflow-y-auto">
+          <LayerCard className="rounded-lg ring ring-kumo-line shadow-lg overflow-hidden max-h-64 overflow-y-auto">
             {visibleResults.map((p) => (
               <button
                 key={p.email}
@@ -72,7 +72,7 @@ export function SearchBox({
                 </span>
               </button>
             ))}
-          </Surface>
+          </LayerCard>
         </div>
       )}
     </div>
