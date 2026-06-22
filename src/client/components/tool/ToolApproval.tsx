@@ -3,7 +3,7 @@
 // 承認待ちカード（Approve / Reject ボタン付き）。
 // =============================================================================
 
-import { Button, Surface, Text } from "@cloudflare/kumo";
+import { Button, LayerCard, Text } from "@cloudflare/kumo";
 import { CheckCircleIcon, GearIcon, XCircleIcon } from "@phosphor-icons/react";
 import type { AddToolApprovalResponse } from "./types";
 import { BookingSummary } from "./BookingSummary";
@@ -26,7 +26,7 @@ export function ToolApproval({
   };
   return (
     <div className="flex justify-start">
-      <Surface className="max-w-[85%] px-4 py-3 rounded-xl ring-2 ring-kumo-warning">
+      <LayerCard className="max-w-[85%] px-4 py-3 rounded-xl ring-2 ring-kumo-warning">
         <div className="flex items-center gap-2 mb-2">
           <GearIcon size={14} className="text-kumo-warning" />
           <Text size="sm" bold>
@@ -64,7 +64,7 @@ export function ToolApproval({
             Reject
           </Button>
         </div>
-      </Surface>
+      </LayerCard>
     </div>
   );
 }

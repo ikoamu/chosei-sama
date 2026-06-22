@@ -12,13 +12,11 @@ import { TextPart } from "./TextPart";
 export function MessageItem({
   message,
   isLastAssistant,
-  showDebug,
   isStreaming,
   addToolApprovalResponse
 }: {
   message: UIMessage;
   isLastAssistant: boolean;
-  showDebug: boolean;
   isStreaming: boolean;
   addToolApprovalResponse: AddToolApprovalResponse;
 }) {
@@ -26,12 +24,6 @@ export function MessageItem({
 
   return (
     <div className="space-y-2">
-      {showDebug && (
-        <pre className="text-[11px] text-kumo-subtle bg-kumo-control rounded-lg p-3 overflow-auto max-h-64">
-          {JSON.stringify(message, null, 2)}
-        </pre>
-      )}
-
       {/* Tool parts */}
       {message.parts.filter(isToolUIPart).map((part) => (
         <ToolPartView

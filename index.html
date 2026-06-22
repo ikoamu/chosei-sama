@@ -1,5 +1,10 @@
 <!doctype html>
-<html lang="en" data-theme="workers">
+<html
+  lang="en"
+  data-theme="workers"
+  data-mode="light"
+  style="color-scheme: light"
+>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -9,13 +14,6 @@
     />
     <title>調整さま</title>
     <link rel="icon" href="/favicon.ico" />
-    <script>
-      (() => {
-        const mode = localStorage.getItem("theme") || "light";
-        document.documentElement.setAttribute("data-mode", mode);
-        document.documentElement.style.colorScheme = mode;
-      })();
-    </script>
   </head>
   <body>
     <div id="root"></div>

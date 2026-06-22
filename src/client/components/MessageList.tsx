@@ -9,12 +9,10 @@ import { MessageItem } from "./message/MessageItem";
 
 export function MessageList({
   messages,
-  showDebug,
   isStreaming,
   addToolApprovalResponse
 }: {
   messages: UIMessage[];
-  showDebug: boolean;
   isStreaming: boolean;
   addToolApprovalResponse: AddToolApprovalResponse;
 }) {
@@ -27,7 +25,6 @@ export function MessageList({
           isLastAssistant={
             message.role === "assistant" && index === messages.length - 1
           }
-          showDebug={showDebug}
           isStreaming={isStreaming}
           addToolApprovalResponse={addToolApprovalResponse}
         />

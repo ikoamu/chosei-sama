@@ -3,7 +3,7 @@
 // createEvent 実行後の完了/失敗を読める形で表示する。
 // =============================================================================
 
-import { Surface, Text } from "@cloudflare/kumo";
+import { LayerCard, Text } from "@cloudflare/kumo";
 import {
   ArrowSquareOutIcon,
   CheckCircleIcon,
@@ -41,7 +41,7 @@ export function BookingResult({ output }: { output: unknown }) {
 
   return (
     <div className="flex justify-start">
-      <Surface className="max-w-[85%] px-4 py-3 rounded-xl ring ring-kumo-line space-y-2">
+      <LayerCard className="max-w-[85%] px-4 py-3 rounded-xl ring ring-kumo-line space-y-2">
         <div className="flex items-center gap-2">
           <CheckCircleIcon size={16} className="text-kumo-success" />
           <Text size="sm" bold>
@@ -77,7 +77,7 @@ export function BookingResult({ output }: { output: unknown }) {
             </a>
           )}
         </div>
-      </Surface>
+      </LayerCard>
     </div>
   );
 }

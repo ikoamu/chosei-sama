@@ -5,7 +5,7 @@
 // =============================================================================
 
 import { Button, Text } from "@cloudflare/kumo";
-import { UsersIcon } from "@phosphor-icons/react";
+import { SparkleIcon, UsersIcon } from "@phosphor-icons/react";
 import type { AuthUser } from "../types";
 import type { DirectoryPerson } from "../lib/directory";
 import { useParticipantPicker } from "../hooks/useParticipantPicker";
@@ -82,14 +82,16 @@ export function ParticipantPicker({
         disabled={disabled}
       />
 
-      <Button
-        variant="primary"
-        className="w-full"
-        disabled={disabled || picker.selected.length === 0}
-        onClick={() => onStart(picker.selected, picker.details)}
-      >
-        この参加者で空き時間を探す
-      </Button>
+      <div className="flex justify-end">
+        <Button
+          variant="primary"
+          icon={<SparkleIcon size={16} />}
+          disabled={disabled || picker.selected.length === 0}
+          onClick={() => onStart(picker.selected, picker.details)}
+        >
+          この内容で調整を始める
+        </Button>
+      </div>
     </div>
   );
 }
