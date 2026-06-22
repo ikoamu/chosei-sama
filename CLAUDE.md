@@ -17,6 +17,7 @@ Google Workspace の共有カレンダーから、指定メンバー全員が空
 src/
   shared/
     base64url.ts          # base64url 変換（server / scheduler 共有）
+    directory.ts          # People API ディレクトリ検索（findPeople）＝参加者解決
   scheduler/              # 提案エンジン（ランタイム非依存・テスト対象）
     index.ts              # 公開 API のバレル（外からはここ経由で import）
     types.ts              # Interval / SlotPreferences など型定義
@@ -26,8 +27,10 @@ src/
     slots.ts              # commonFree / findSlots / scoreSlot
     freebusy.ts           # queryFreeBusy / parseFreeBusyResponse（FreeBusy 照会）
     suggest.ts            # suggestSlots（単発）/ suggestRecurringSlots（定期）
+    events.ts             # buildEventRequest / createEvent（events.insert＝予約確定）
     intervals.test.ts     # 区間・tz ロジックの単体テスト（vitest）
     freebusy.test.ts      # FreeBusy レスポンス分解の単体テスト（vitest）
+    events.test.ts        # イベント生成リクエスト組み立ての単体テスト（vitest）
   server/                 # Worker / Durable Object 側
     index.ts              # Worker エントリ（wrangler main）。ルーティング＋ChatAgent re-export
     chat-agent.ts         # ChatAgent（DO）。onConnect で認証確定＋refresh_token保持、
@@ -35,7 +38,7 @@ src/
     prompt.ts             # システムプロンプト生成
     tools/
       index.ts            # buildTools（自前ツールを束ねる）
-      calendar-tools.ts   # suggestSlots / suggestRecurringSlots ツール
+      calendar-tools.ts   # findPeople / suggestSlots / suggestRecurringSlots / createEvent ツール
       task-tools.ts       # getUserTimezone / scheduleTask など
     auth/
       index.ts            # /oauth/* ハンドラ＋ verifySession re-export
@@ -62,9 +65,11 @@ vite.config.ts            # Vite ビルド設定
   - 照会は**依頼者本人の OAuth アクセストークン**で行う（SA は廃止。`docs/adr/0001` 参照）。
   - 純粋関数の区間演算: `mergeIntervals` / `subtractIntervals` / `commonFree` / `findSlots`。
   - 高レベルAPI: `suggestSlots`（単発）/ `suggestRecurringSlots`（定期）。
+  - 予約確定: `buildEventRequest` / `createEvent`（`events.insert`）。書き込みは server 側で承認を挟む。
 - `src/server/` … `ChatAgent` と OAuth・ツール定義。**scheduler との結線済み**（`tools/calendar-tools.ts`）。
+  - 参加者解決: `shared/directory.ts`（People API findPeople）を `findPeople` ツールとして公開。
+  - 予約確定: `scheduler/events.ts`（`events.insert`）を `createEvent` ツールとして公開。**human-in-the-loop**（`needsApproval: true`）で承認を挟んでから書き込む。
 - `src/client/` … チャット UI。Kumo デザインシステム、ダーク/ライトモード対応。
-- **まだ無い**: イベント作成（予約確定）、自然文の解釈層の作り込み。
 
 ## HOW — 技術スタックと方針
 
@@ -75,12 +80,6 @@ vite.config.ts            # Vite ビルド設定
   **SA + ドメイン委任は廃止**（管理者が委任を許可せず `unauthorized_client`。経緯は `docs/adr/0001`）。
   読めない参加者がいる場合は候補を出さず名指しで中断する（CONTEXT.md「空き可視性」）。
 - タイムゾーン: 計算はすべて epoch ms。境界（勤務時間の生成・表示）でのみ IANA tz 変換。既定は `Asia/Tokyo`。
-
-## 次のタスク（優先順）
-
-1. 提案結果を予約確定する `events.insert`。**必ず human-in-the-loop**:「候補提示 → 人が承認 → 作成＋招待送信」。承認前に書き込まない。
-2. **自然文の解釈層**（「Dさんと30分おさえて」→ パラメータ抽出 → `suggestSlots`）。
-3. 仕上げ: 辞退済み予定/ランチ枠/会議間バッファ/個人別勤務時間、UI、複数tz対応。
 
 ## ガードレール（重要）
 
