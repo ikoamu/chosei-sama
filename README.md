@@ -9,7 +9,7 @@ Cloudflare Agents + Google Calendar FreeBusy API で動く。
 
 ```
 src/
-  shared/        # base64url など server / scheduler 共有のユーティリティ
+  shared/        # directory（People API 検索）など server / client 共有のユーティリティ
   scheduler/     # 提案エンジン（ランタイム非依存・テスト対象）
                  #   intervals / timezone / windows / slots / freebusy /
                  #   google-auth / suggest を index.ts のバレルで公開
@@ -34,9 +34,17 @@ pnpm install
 
 ## 開発
 
+初回はローカル用のシークレットを用意する。`.dev.sample.vars` をコピーして
+`.dev.vars` を作り、実値を記入してから起動する（`.dev.vars` は `.gitignore` 済み）。
+
 ```bash
+cp .dev.sample.vars .dev.vars   # 各値を埋める（GOOGLE_CLIENT_ID 等）
 pnpm dev
 ```
+
+Google Cloud の OAuth クライアントには、ローカルのリダイレクト URI
+`http://localhost:5173/oauth/callback` を「承認済みのリダイレクト URI」として
+登録しておくこと。
 
 http://localhost:5173 でチャット UI が開く。
 
@@ -52,24 +60,18 @@ pnpm exec tsx src/scheduler/intervals.test.ts   # 区間ロジックの単体テ
 pnpm deploy   # vite build && wrangler deploy
 ```
 
-## デプロイ前に必要な外部設定（管理者作業を含む）
+## デプロイ前に必要な外部設定
 
-### スケジュール提案（FreeBusy／サーバ側・サービスアカウント）
-
-1. GCP でサービスアカウントを作成し、JSON 鍵を取得
-2. Workspace 管理者に、そのサービスアカウントへ `calendar.readonly` スコープの **ドメイン全体の委任** を許可してもらう
-3. 鍵を Cloudflare に格納: `wrangler secret put GOOGLE_SA_KEY`
-
-### ログイン & 同僚検索（OAuth／ブラウザ側・ユーザートークン）
-
-同僚検索はサービスアカウントではなく、**ログインユーザー本人のトークン**でブラウザから
-直接 People API を叩く（ドメイン委任の追加は不要）。
+ログイン・同僚検索・FreeBusy 照会・予約確定はすべて **ログインユーザー本人の
+OAuth トークン**で行う。サービスアカウントやドメイン全体委任は使わない（管理者作業は不要。
+経緯は `docs/adr/0001-user-oauth-for-freebusy.md`）。
 
 1. GCP で OAuth 2.0 クライアント ID（ウェブアプリ）を作成
 2. **承認済みリダイレクト URI** に `https://<your-domain>/oauth/callback` を追加
 3. **承認済み JavaScript 生成元** にアプリのオリジン（例 `https://<your-domain>`）を追加
    ← Google Identity Services のトークン取得に必須
-4. OAuth 同意画面のスコープに `directory.readonly` を追加（同一ドメイン内ユーザーが同意して使う）
+4. OAuth 同意画面のスコープに以下を追加（同一ドメイン内ユーザーが同意して使う）:
+   `directory.readonly`（同僚検索）/ `calendar.freebusy`（空き照会）/ `calendar.events`（予約確定）
 5. シークレットを格納:
    `wrangler secret put GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `ALLOWED_DOMAIN` / `COOKIE_SECRET`
 

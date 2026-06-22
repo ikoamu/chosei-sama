@@ -3,7 +3,7 @@
 // 署名付きセッション Cookie の発行・検証（HMAC-SHA256）。
 // =============================================================================
 
-import { base64urlToBytes, bytesToBase64url } from "../../shared/base64url";
+import { base64urlToBytes, bytesToBase64url } from "./base64url";
 
 export interface UserSession {
   email: string;

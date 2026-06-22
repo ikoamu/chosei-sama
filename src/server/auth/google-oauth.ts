@@ -4,7 +4,7 @@
 // 許可ドメイン（hd クレーム）以外のアカウントは拒否する。
 // =============================================================================
 
-import { base64urlToBytes } from "../../shared/base64url";
+import { base64urlToBytes } from "./base64url";
 
 export interface OAuthConfig {
   clientId: string;

@@ -29,7 +29,7 @@ const FALLBACK_MODEL = "@cf/meta/llama-4-scout-17b-16e-instruct";
 
 /** SQLite に永続される Agent 状態。hibernation を跨いでも保持される。 */
 interface ChatState {
-  /** 認証済みリクエスト者のメール。ドメイン委任の subject（誰として読むか）の唯一の出所。 */
+  /** 認証済みリクエスト者のメール。本人トークンで誰として読む/書くかの唯一の出所。 */
   userEmail: string;
 }
 

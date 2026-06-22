@@ -16,8 +16,7 @@ Google Workspace の共有カレンダーから、指定メンバー全員が空
 ```
 src/
   shared/
-    base64url.ts          # base64url 変換（server / scheduler 共有）
-    directory.ts          # People API ディレクトリ検索（findPeople）＝参加者解決
+    directory.ts          # People API ディレクトリ検索（findPeople）＝参加者解決（server / client 共有）
   scheduler/              # 提案エンジン（ランタイム非依存・テスト対象）
     index.ts              # 公開 API のバレル（外からはここ経由で import）
     types.ts              # Interval / SlotPreferences など型定義
@@ -44,6 +43,7 @@ src/
       index.ts            # /oauth/* ハンドラ＋ verifySession re-export
       session.ts          # 署名付きセッション Cookie（HMAC）
       google-oauth.ts     # Google ログイン（認可 URL・コード交換）
+      base64url.ts        # base64url 変換（セッション HMAC・ID トークンのデコード）
   client/                 # ブラウザ / React 側
     index.tsx             # React エントリポイント
     App.tsx               # ルート（ログイン／チャットの出し分け）
