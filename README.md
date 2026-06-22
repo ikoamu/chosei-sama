@@ -34,9 +34,17 @@ pnpm install
 
 ## 開発
 
+初回はローカル用のシークレットを用意する。`.dev.sample.vars` をコピーして
+`.dev.vars` を作り、実値を記入してから起動する（`.dev.vars` は `.gitignore` 済み）。
+
 ```bash
+cp .dev.sample.vars .dev.vars   # 各値を埋める（GOOGLE_CLIENT_ID 等）
 pnpm dev
 ```
+
+Google Cloud の OAuth クライアントには、ローカルのリダイレクト URI
+`http://localhost:5173/oauth/callback` を「承認済みのリダイレクト URI」として
+登録しておくこと。
 
 http://localhost:5173 でチャット UI が開く。
 
