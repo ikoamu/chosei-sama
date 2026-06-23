@@ -93,7 +93,7 @@ vite.config.ts            # Vite ビルド設定
 - 開発サーバ: `pnpm dev`
 - テスト: `pnpm test`（vitest, node 環境）。テストは `src/**/*.test.ts`
 - lint / format / 型チェック: `pnpm check`
-- コード品質の傾向確認: `pnpm quality`（fallow）。**スコアは鵜呑みにしない** — `@babel/plugin-proposal-decorators` / `@rolldown/plugin-babel`（`@callable` デコレータのビルドに必要）や `ChatAgent` のライフサイクル（`onConnect`/`onStart`/`onChatMessage` 等、SDK が呼ぶ）は「未使用」と誤検知される。これらは削除しない。
+- コード品質の傾向確認: `pnpm quality`（fallow）。既知の誤検知（`@callable` ビルド用の `@babel/plugin-proposal-decorators` / `@rolldown/plugin-babel`、SDK が呼ぶ `ChatAgent` のライフサイクル `onConnect`/`onStart`/`onChatMessage` 等）は `.fallowrc.jsonc` で抑制済みなので、検出が出たら基本は本物。なお抑制対象の依存・クラスメンバーは引き続き削除しない。
 - デプロイ: main push で Cloudflare Workers Builds が自動実行。手動: `pnpm deploy`（= `vite build && wrangler deploy`）
 
 ## 参照リンク

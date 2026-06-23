@@ -142,6 +142,9 @@ dist
 .wrangler
 .dev.vars
 
+# fallow（コード品質解析）のローカルキャッシュ
+.fallow/
+
 # Claude Code の個人設定・ローカル資格情報（チーム共有しない）
 # .agents/ .claude/ 本体と skills-lock.json はチーム共有のためコミットする
 .claude/settings.local.json
