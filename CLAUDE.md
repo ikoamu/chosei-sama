@@ -17,8 +17,9 @@ Google Workspace の共有カレンダーから、指定メンバー全員が空
 src/
   shared/
     directory.ts          # People API ディレクトリ検索（findPeople）＝参加者解決（server / client 共有）
+    directory.test.ts     # ディレクトリ検索の単体テスト（vitest）
   scheduler/              # 提案エンジン（ランタイム非依存・テスト対象）
-    index.ts              # 公開 API のバレル（外からはここ経由で import）
+    index.ts              # 公開 API のバレル（外＝server/テストが実消費する分だけを公開）
     types.ts              # Interval / SlotPreferences など型定義
     intervals.ts          # mergeIntervals / subtractIntervals / overlaps（純粋）
     timezone.ts           # epoch ms ⇄ IANA tz の変換ヘルパー（純粋）
@@ -27,9 +28,7 @@ src/
     freebusy.ts           # queryFreeBusy / parseFreeBusyResponse（FreeBusy 照会）
     suggest.ts            # suggestSlots（単発）/ suggestRecurringSlots（定期）
     events.ts             # buildEventRequest / createEvent（events.insert＝予約確定）
-    intervals.test.ts     # 区間・tz ロジックの単体テスト（vitest）
-    freebusy.test.ts      # FreeBusy レスポンス分解の単体テスト（vitest）
-    events.test.ts        # イベント生成リクエスト組み立ての単体テスト（vitest）
+    *.test.ts             # intervals / freebusy / events / suggest の単体テスト（vitest）
   server/                 # Worker / Durable Object 側
     index.ts              # Worker エントリ（wrangler main）。ルーティング＋ChatAgent re-export
     chat-agent.ts         # ChatAgent（DO）。onConnect で認証確定＋refresh_token保持、
@@ -43,20 +42,24 @@ src/
       index.ts            # /oauth/* ハンドラ＋ verifySession re-export
       session.ts          # 署名付きセッション Cookie（HMAC）
       google-oauth.ts     # Google ログイン（認可 URL・コード交換）
+      agent-access.ts     # /agents/* のアクセス可否判定（他人名インスタンスへの接続を防ぐ・純粋）
       base64url.ts        # base64url 変換（セッション HMAC・ID トークンのデコード）
   client/                 # ブラウザ / React 側
     index.tsx             # React エントリポイント
     App.tsx               # ルート（ログイン／チャットの出し分け）
-    styles.css            # Tailwind + Kumo スタイル
+    styles.css            # Tailwind + Kumo スタイル（ライトモード固定）
     types.ts              # AuthUser などクライアント共有型
-    hooks/useAuth.ts      # ログイン状態フック
-    lib/directory.ts      # People API ディレクトリ検索（ブラウザ直叩き）
+    hooks/                # useAuth / useChatSession / useParticipantPicker
+    lib/                  # directory（People API 直叩き）/ participants（送信メッセージ組み立て）
     components/           # Chat / ChatHeader / MessageList / ToolPartView /
-                          # ParticipantPicker / LoginScreen / ThemeToggle
+                          # ParticipantPicker / LoginScreen と
+                          # chat/・message/・participant/・tool/ 配下のサブ表示
 index.html                # SPA エントリ（/src/client/index.tsx を読む）
 env.secrets.d.ts          # Secrets（wrangler types で消えない Env 型補完）
 wrangler.jsonc            # Workers / Durable Object 設定
 vite.config.ts            # Vite ビルド設定
+vitest.config.ts          # テスト設定（node 環境・src/**/*.test.ts）
+.fallowrc.jsonc           # fallow（pnpm quality）設定。既知の誤検知を抑制
                           # デプロイは Cloudflare Workers Builds（Git 連携）で自動実行
 ```
 
@@ -69,7 +72,7 @@ vite.config.ts            # Vite ビルド設定
 - `src/server/` … `ChatAgent` と OAuth・ツール定義。**scheduler との結線済み**（`tools/calendar-tools.ts`）。
   - 参加者解決: `shared/directory.ts`（People API findPeople）を `findPeople` ツールとして公開。
   - 予約確定: `scheduler/events.ts`（`events.insert`）を `createEvent` ツールとして公開。**human-in-the-loop**（`needsApproval: true`）で承認を挟んでから書き込む。
-- `src/client/` … チャット UI。Kumo デザインシステム、ダーク/ライトモード対応。
+- `src/client/` … チャット UI。Kumo デザインシステム。ヘッダーは緑 (#07AF4A) のライトモード固定。
 
 ## HOW — 技術スタックと方針
 
