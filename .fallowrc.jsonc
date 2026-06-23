@@ -1,0 +1,27 @@
+{
+  "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
+
+  // @callable デコレータのビルドにのみ使う devDependency。
+  // fallow は import 文を見つけられず「未使用」と誤検知するため除外する。
+  "ignoreDependencies": [
+    "@babel/plugin-proposal-decorators",
+    "@rolldown/plugin-babel"
+  ],
+
+  // Agents SDK が呼ぶ ChatAgent のライフサイクル/状態メンバー。
+  // 直接の呼び出し元が無く静的には未使用に見えるが、フレームワークが利用する。
+  // AIChatAgent を継承するクラスに限定して抑制する。
+  "usedClassMembers": [
+    {
+      "extends": "AIChatAgent",
+      "members": [
+        "maxPersistedMessages",
+        "initialState",
+        "onConnect",
+        "onStart",
+        "onChatMessage",
+        "executeTask"
+      ]
+    }
+  ]
+}
