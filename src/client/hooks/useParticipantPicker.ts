@@ -4,7 +4,7 @@
 // ディレクトリ参照トークンの取得・デバウンス検索・選択状態・派生値をまとめる。
 // =============================================================================
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { AuthUser } from "../types";
 import {
   fetchDirectoryToken,
@@ -81,7 +81,6 @@ export function useParticipantPicker(self: AuthUser) {
   const [selected, setSelected] = useState<DirectoryPerson[]>([selfPerson]);
   // 希望条件のフリーテキスト（単発/定期はこの文面から Agent が推測する）。
   const [details, setDetails] = useState("");
-  const boxRef = useRef<HTMLDivElement>(null);
 
   const { token, setToken, tokenError, setTokenError } = useDirectoryToken();
   const { results, setResults, loading, open, setOpen } = useDirectorySearch(
@@ -90,20 +89,7 @@ export function useParticipantPicker(self: AuthUser) {
     setToken,
     setTokenError
   );
-
-  // ドロップダウンの外側クリックで閉じる。
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-    function onClick(e: MouseEvent) {
-      if (boxRef.current && !boxRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", onClick);
-    return () => document.removeEventListener("mousedown", onClick);
-  }, [open, setOpen]);
+  // ポップアップの開閉・外側クリックでの dismiss は Autocomplete（Base UI）が担う。
 
   const addPerson = (p: DirectoryPerson) => {
     if (!selected.some((s) => s.email === p.email)) {
@@ -135,14 +121,12 @@ export function useParticipantPicker(self: AuthUser) {
     loading,
     open,
     setOpen,
-    boxRef,
     selected,
     details,
     setDetails,
     addPerson,
     removePerson,
     visibleResults,
-    orderedSelected,
-    hasResults: results.length > 0
+    orderedSelected
   };
 }

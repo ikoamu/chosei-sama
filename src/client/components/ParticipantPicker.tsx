@@ -68,11 +68,9 @@ export function ParticipantPicker({
           loading={picker.loading}
           open={picker.open}
           setOpen={picker.setOpen}
-          boxRef={picker.boxRef}
           visibleResults={picker.visibleResults}
           onAdd={picker.addPerson}
           disabled={disabled}
-          hasResults={picker.hasResults}
         />
       )}
 
