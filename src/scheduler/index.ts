@@ -4,38 +4,12 @@
 // Cloudflare Workers / Agents 上で動くよう Web Crypto と fetch のみで実装し、
 // 外部ライブラリ・Node 固有 API には依存しない。
 //
-// このバレルが公開 API。内部モジュール（intervals / timezone / ...）へ直接
-//依存せず、ここ経由で import する。
+// このバレルが公開 API。外部（server）とテストが実際に使うものだけを公開し、
+// scheduler 内部モジュール同士は各 module を直接 import し合う。
 // =============================================================================
 
-export type {
-  Interval,
-  RecurringCandidate,
-  SlotCandidate,
-  SlotPreferences,
-  WorkingHours
-} from "./types";
-
-export {
-  queryFreeBusy,
-  parseFreeBusyResponse,
-  type FreeBusyResult
-} from "./freebusy";
-export {
-  createEvent,
-  buildEventId,
-  buildEventRequest,
-  type EventDraft,
-  type CreateEventResult
-} from "./events";
-export { mergeIntervals, subtractIntervals, overlaps } from "./intervals";
+export { createEvent } from "./events";
+export { mergeIntervals, subtractIntervals } from "./intervals";
 export { workingWindowsInRange } from "./windows";
-export { commonFree, findSlots, scoreSlot } from "./slots";
-export {
-  suggestSlots,
-  suggestRecurringSlots,
-  type SuggestSlotsOptions,
-  type SuggestSlotsResult,
-  type SuggestRecurringOptions,
-  type SuggestRecurringResult
-} from "./suggest";
+export { commonFree, findSlots } from "./slots";
+export { suggestSlots, suggestRecurringSlots } from "./suggest";
