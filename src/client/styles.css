@@ -13,6 +13,13 @@
   --color-kumo-brand-hover: #39bf6e;
 }
 
+/* 参加者検索 Autocomplete: ↑↓ でハイライト中の候補を明確にする。
+   Kumo 既定の薄い data-highlighted 背景を、緑チント＋左の緑バーで上書きする。 */
+.participant-popup [data-highlighted] {
+  background-color: color-mix(in oklab, #07af4a 15%, transparent) !important;
+  box-shadow: inset 3px 0 0 0 #07af4a !important;
+}
+
 html,
 body,
 #root {
