@@ -24,7 +24,7 @@ export function TextPart({
   if (isUser) {
     return (
       <div className="flex justify-end">
-        <div className="max-w-[85%] px-4 py-2.5 rounded-2xl rounded-br-md bg-kumo-contrast text-kumo-inverse leading-relaxed">
+        <div className="max-w-[85%] px-4 py-2.5 rounded-2xl rounded-br-md bg-kumo-contrast text-kumo-inverse leading-relaxed whitespace-pre-wrap break-words">
           {text}
         </div>
       </div>
