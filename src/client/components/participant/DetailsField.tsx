@@ -11,8 +11,7 @@ const TEMPLATES = {
     "予定の名前: MTG",
     "単発or定例: 単発",
     "所要時間: 1h",
-    "いつから: 来週から",
-    "いつまで: 再来週まで",
+    "いつ: 今月中",
     "曜日や時間帯: いつでも"
   ].join("\n"),
   recurring: [
@@ -63,7 +62,7 @@ export function DetailsField({
           rows={6}
           aria-label="調整の希望条件"
           placeholder={
-            "予定の名前: MTG\n単発or定例: 単発\n所要時間: 1h\nいつから: 来週から\nいつまで: 再来週まで\n曜日や時間帯: いつでも"
+            "予定の名前: MTG\n単発or定例: 単発\n所要時間: 1h\nいつ: 今月中\n曜日や時間帯: いつでも"
           }
           className="w-full text-sm rounded-lg border border-kumo-line bg-kumo-base px-3 py-2 text-kumo-default placeholder:text-kumo-inactive focus:outline-none focus:ring-1 focus:ring-kumo-accent resize-none"
         />
