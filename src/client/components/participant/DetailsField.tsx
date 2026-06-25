@@ -20,7 +20,7 @@ const TEMPLATES = {
     "所要時間: 1h",
     "頻度: 毎週",
     "いつから: 来週から",
-    "いつまで: 3か月後の月末まで",
+    "いつまで: 来月末まで",
     "曜日や時間帯: いつでも"
   ].join("\n")
 } as const;
@@ -59,7 +59,7 @@ export function DetailsField({
           value={details}
           onChange={(e) => setDetails(e.target.value)}
           disabled={disabled}
-          rows={6}
+          rows={10}
           aria-label="調整の希望条件"
           placeholder={TEMPLATES.single}
           className="w-full text-sm rounded-lg border border-kumo-line bg-kumo-base px-3 py-2 text-kumo-default placeholder:text-kumo-inactive focus:outline-none focus:ring-1 focus:ring-kumo-accent resize-none"
