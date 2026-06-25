@@ -4,6 +4,9 @@
 // このメッセージは「事実」だけを載せる: 解決済み参加者（メール確定）と、
 // ユーザーが書いた調整条件のテキスト。解釈・振る舞いのルールはシステム
 // プロンプト側に置く（docs/adr/0002）。
+//
+// 注意: これは role=user のメッセージ。LLM から見て「あなた」はアシスタント
+// 自身を指すため、主催者（依頼者本人）は二人称ではなく名前＋メールで明示する。
 // =============================================================================
 
 import type { DirectoryPerson } from "./directory.ts";
@@ -21,8 +24,8 @@ export function buildScheduleMessage(
   const roster = selected.map((p) => `- ${p.name} <${p.email}>`).join("\n");
   const selfIncluded = selected.some((p) => p.email === self.email);
   const organizer = selfIncluded
-    ? `主催はあなた（${self.name} <${self.email}>）です。`
-    : "私自身は参加しません。";
+    ? `主催者は ${self.name} <${self.email}>（依頼者本人）です。`
+    : "依頼者本人は参加しません。";
   const criteria = details?.trim() ? `\n\n調整条件:\n${details.trim()}` : "";
   return `参加者（解決済み・メール確定）:\n${roster}\n${organizer}${criteria}\n\n上記の参加者全員の空き時間を調整し、空いている時間を提案してください。`;
 }
