@@ -3,10 +3,27 @@
 // 希望条件のテンプレボタンとフリーテキスト欄。
 // =============================================================================
 
-/** 希望条件のテンプレ文。クリックでテキストエリアに入れて微修正してもらう。 */
+// 希望条件のテンプレ。最低限の項目をラベル付きで埋めた状態にし、クリックで
+// テキストエリアに入れて値だけ微修正してもらう（聞き返しを減らす）。
+// 入力はあくまでフリーテキスト（UI ウィジェットは持たない。docs/adr/0002）。
 const TEMPLATES = {
-  single: "30分のミーティングを来週中で。できれば午後希望。",
-  recurring: "1時間の定例を隔週で、来月から6回。できれば午後希望。"
+  single: [
+    "予定の名前: MTG",
+    "単発or定例: 単発",
+    "所要時間: 1h",
+    "いつから: 来週から",
+    "いつまで: 再来週まで",
+    "曜日や時間帯: いつでも"
+  ].join("\n"),
+  recurring: [
+    "予定の名前: 定例MTG",
+    "単発or定例: 定例",
+    "所要時間: 1h",
+    "頻度: 毎週",
+    "いつから: 来週から",
+    "いつまで: 来月末まで",
+    "曜日や時間帯: いつでも"
+  ].join("\n")
 } as const;
 
 export function DetailsField({
@@ -37,15 +54,17 @@ export function DetailsField({
 
       <label className="block">
         <span className="block text-xs text-kumo-subtle mb-1">
-          どんな調整？（所要時間・期間など）
+          どんな調整？（テンプレを選んで値を直すか、自由に記入）
         </span>
         <textarea
           value={details}
           onChange={(e) => setDetails(e.target.value)}
           disabled={disabled}
-          rows={3}
+          rows={6}
           aria-label="調整の希望条件"
-          placeholder="例: 30分のミーティングを来週中で。できれば午後希望。"
+          placeholder={
+            "予定の名前: MTG\n単発or定例: 単発\n所要時間: 1h\nいつから: 来週から\nいつまで: 再来週まで\n曜日や時間帯: いつでも"
+          }
           className="w-full text-sm rounded-lg border border-kumo-line bg-kumo-base px-3 py-2 text-kumo-default placeholder:text-kumo-inactive focus:outline-none focus:ring-1 focus:ring-kumo-accent resize-none"
         />
       </label>

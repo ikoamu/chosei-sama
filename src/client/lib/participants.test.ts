@@ -30,17 +30,18 @@ describe("buildScheduleMessage", () => {
     expect(msg).not.toContain(tanaka.email);
   });
 
-  it("details があれば希望条件として挿入する", () => {
+  it("details があれば調整条件としてそのまま載せる", () => {
     const msg = buildScheduleMessage(
       [tanaka],
       self,
-      "隔週1h、来月から6回、午後希望"
+      "所要時間: 1h\nいつまで: 来月末まで"
     );
-    expect(msg).toContain("希望条件: 隔週1h、来月から6回、午後希望");
+    expect(msg).toContain("調整条件:");
+    expect(msg).toContain("所要時間: 1h\nいつまで: 来月末まで");
   });
 
-  it("details が空白のみなら希望条件を挿入しない", () => {
+  it("details が空白のみなら調整条件を載せない", () => {
     const msg = buildScheduleMessage([tanaka], self, "   ");
-    expect(msg).not.toContain("希望条件");
+    expect(msg).not.toContain("調整条件");
   });
 });
