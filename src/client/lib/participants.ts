@@ -1,28 +1,31 @@
 // =============================================================================
 // client/lib/participants
-// 参加者ピッカーの選択結果から、ChatAgent に送る自然文メッセージを組み立てる。
-// 単発/定期はメッセージ本文（希望条件）から Agent が推測する。
+// 参加者ピッカーの選択結果から、ChatAgent に送る初回メッセージを組み立てる。
+// このメッセージは「事実」だけを載せる: 解決済み参加者（メール確定）と、
+// ユーザーが書いた調整条件のテキスト。解釈・振る舞いのルールはシステム
+// プロンプト側に置く（docs/adr/0002）。
+//
+// 注意: これは role=user のメッセージ。LLM から見て「あなた」はアシスタント
+// 自身を指すため、主催者（依頼者本人）は二人称ではなく名前＋メールで明示する。
 // =============================================================================
 
 import type { DirectoryPerson } from "./directory.ts";
 
-const label = (p: DirectoryPerson) => `${p.name} <${p.email}>`;
-
 /**
- * 選択された参加者一覧から調整依頼メッセージを生成する。
- * self が selected に含まれていれば「主催はあなた」と明示する。
- * details（所要時間・期間などの希望条件フリーテキスト）があれば文面に含める。
+ * 選択された参加者一覧から初回の調整依頼メッセージを生成する。
+ * 参加者はピッカーで解決済み（メール確定）。self が含まれていれば主催を明示する。
+ * details（ラベル付きの調整条件フリーテキスト）があればそのまま載せる。
  */
 export function buildScheduleMessage(
   selected: DirectoryPerson[],
   self: { name: string; email: string },
   details?: string
 ): string {
-  const list = selected.map(label).join("、");
+  const roster = selected.map((p) => `- ${p.name} <${p.email}>`).join("\n");
   const selfIncluded = selected.some((p) => p.email === self.email);
-  const note = selfIncluded
-    ? `主催はあなた（${self.name} <${self.email}>）です。`
-    : "私自身は参加しません。";
-  const detail = details?.trim() ? `希望条件: ${details.trim()}。` : "";
-  return `参加者は ${list} です。${note}${detail}全員の空き時間を調整したいので、空いている時間を提案してください。`;
+  const organizer = selfIncluded
+    ? `主催者は ${self.name} <${self.email}>（依頼者本人）です。`
+    : "依頼者本人は参加しません。";
+  const criteria = details?.trim() ? `\n\n調整条件:\n${details.trim()}` : "";
+  return `参加者（解決済み・メール確定）:\n${roster}\n${organizer}${criteria}\n\n上記の参加者全員の空き時間を調整し、空いている時間を提案してください。`;
 }
