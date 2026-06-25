@@ -61,9 +61,7 @@ export function DetailsField({
           disabled={disabled}
           rows={6}
           aria-label="調整の希望条件"
-          placeholder={
-            "予定の名前: MTG\n単発or定例: 単発\n所要時間: 1h\nいつ: 今月中\n曜日や時間帯: いつでも"
-          }
+          placeholder={TEMPLATES.single}
           className="w-full text-sm rounded-lg border border-kumo-line bg-kumo-base px-3 py-2 text-kumo-default placeholder:text-kumo-inactive focus:outline-none focus:ring-1 focus:ring-kumo-accent resize-none"
         />
       </label>
