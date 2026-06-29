@@ -10,7 +10,7 @@ import { useAgent } from "agents/react";
 import { useAgentChat } from "@cloudflare/ai-chat/react";
 import { useKumoToastManager } from "@cloudflare/kumo/components/toast";
 import { useChatSubmit } from "use-chat-submit";
-import type { UIMessage } from "ai";
+import { isToolUIPart, type UIMessage } from "ai";
 import type { ChatAgent } from "../../server/chat-agent";
 import type { AuthUser } from "../types";
 import type { DirectoryPerson } from "../lib/directory";
@@ -95,6 +95,23 @@ function useChatActions(
   return { startWithParticipants, retryLast };
 }
 
+/**
+ * モデルがツール結果を受け取り、次の出力（候補日の提示など）を考えている最中か。
+ * 末尾パートが完了済みツール（output-available）なら、テキスト到着前の「無表示の空白」。
+ */
+function isAwaitingModelAfterTool(messages: UIMessage[]): boolean {
+  const last = messages[messages.length - 1];
+  if (!last || last.role !== "assistant") {
+    return false;
+  }
+  const lastPart = last.parts[last.parts.length - 1];
+  return (
+    !!lastPart &&
+    isToolUIPart(lastPart) &&
+    lastPart.state === "output-available"
+  );
+}
+
 /** useChatSession が返す配線一式。子コンポーネントの prop 型付けに使う。 */
 export type ChatSession = ReturnType<typeof useChatSession>;
 
@@ -131,9 +148,13 @@ export function useChatSession(user: AuthUser) {
     }
   });
 
+  // ストリーミング中はトークンごとに本文が伸びるため、smooth だとアニメーションが
+  // 追いつかず最下部からズレる。追従中は即時スクロール、確定後だけ smooth にする。
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    messagesEndRef.current?.scrollIntoView({
+      behavior: isStreaming ? "auto" : "smooth"
+    });
+  }, [messages, isStreaming]);
 
   useEffect(() => {
     if (!isStreaming && textareaRef.current) {
@@ -147,6 +168,12 @@ export function useChatSession(user: AuthUser) {
     sendMessage
   );
 
+  // 送信直後（最初のトークン前）と、ツール結果を受けて返答を組み立てている最中の
+  // どちらも「考え中…」を出し、処理が進んでいることをユーザーに示す。
+  const isThinking =
+    status === "submitted" ||
+    (isStreaming && isAwaitingModelAfterTool(messages));
+
   return {
     connected,
     input,
@@ -155,6 +182,7 @@ export function useChatSession(user: AuthUser) {
     status,
     error,
     isStreaming,
+    isThinking,
     clearHistory,
     addToolApprovalResponse,
     stop,
