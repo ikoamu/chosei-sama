@@ -5,6 +5,7 @@
 
 import { getToolName, isToolUIPart, type UIMessage } from "ai";
 import type { AddToolApprovalResponse } from "./tool/types";
+import { toolViewKind } from "./tool/toolView";
 import { BookingResult } from "./tool/BookingResult";
 import { ToolApproval } from "./tool/ToolApproval";
 import { ToolRejected } from "./tool/ToolRejected";
@@ -18,45 +19,32 @@ export function ToolPartView({
   part: UIMessage["parts"][number];
   addToolApprovalResponse: AddToolApprovalResponse;
 }) {
+  // 状態 → 表示種別の判定は toolViewKind（純粋・テスト済み）に委譲し、
+  // ここは種別ごとのコンポーネント差し込みに専念する。
   if (!isToolUIPart(part)) {
     return null;
   }
   const toolName = getToolName(part);
 
-  // Completed
-  if (part.state === "output-available") {
-    return toolName === "createEvent" ? (
-      <BookingResult output={part.output} />
-    ) : (
-      <ToolResult toolName={toolName} output={part.output} />
-    );
+  switch (toolViewKind(part)) {
+    case "booking-result":
+      return <BookingResult output={part.output} />;
+    case "tool-result":
+      return <ToolResult toolName={toolName} output={part.output} />;
+    case "approval":
+      return (
+        <ToolApproval
+          toolName={toolName}
+          input={part.input}
+          approvalId={(part.approval as { id?: string })?.id}
+          addToolApprovalResponse={addToolApprovalResponse}
+        />
+      );
+    case "rejected":
+      return <ToolRejected toolName={toolName} />;
+    case "running":
+      return <ToolRunning toolName={toolName} />;
+    default:
+      return null;
   }
-
-  // Needs approval
-  if ("approval" in part && part.state === "approval-requested") {
-    return (
-      <ToolApproval
-        toolName={toolName}
-        input={part.input}
-        approvalId={(part.approval as { id?: string })?.id}
-        addToolApprovalResponse={addToolApprovalResponse}
-      />
-    );
-  }
-
-  // Rejected / denied
-  if (
-    part.state === "output-denied" ||
-    ("approval" in part &&
-      (part.approval as { approved?: boolean })?.approved === false)
-  ) {
-    return <ToolRejected toolName={toolName} />;
-  }
-
-  // Executing
-  if (part.state === "input-available" || part.state === "input-streaming") {
-    return <ToolRunning toolName={toolName} />;
-  }
-
-  return null;
 }
