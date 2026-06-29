@@ -22,44 +22,49 @@ export function MessageItem({
 }) {
   const isUser = message.role === "user";
 
+  // パートは元の順序のまま描画する。型ごとにまとめると推論→ツールの並びが
+  // 逆転し、完了済み Reasoning が「考え中…」の直上に来てしまうため。
   return (
     <div className="space-y-2">
-      {/* Tool parts */}
-      {message.parts.filter(isToolUIPart).map((part) => (
-        <ToolPartView
-          key={part.toolCallId}
-          part={part}
-          addToolApprovalResponse={addToolApprovalResponse}
-        />
-      ))}
+      {message.parts.map((part, i) => {
+        if (isToolUIPart(part)) {
+          return (
+            <ToolPartView
+              key={part.toolCallId}
+              part={part}
+              addToolApprovalResponse={addToolApprovalResponse}
+            />
+          );
+        }
 
-      {/* Reasoning parts */}
-      {message.parts
-        .filter(
-          (part) =>
-            part.type === "reasoning" &&
-            (part as { text?: string }).text?.trim()
-        )
-        .map((part, i) => (
-          <ReasoningPart
-            key={i}
-            reasoning={part as ReasoningPartData}
-            isStreaming={isStreaming}
-          />
-        ))}
+        if (part.type === "reasoning") {
+          const reasoning = part as ReasoningPartData;
+          if (!reasoning.text?.trim()) {
+            return null;
+          }
+          return (
+            <ReasoningPart
+              key={`reasoning-${i}`}
+              reasoning={reasoning}
+              isStreaming={isStreaming}
+            />
+          );
+        }
 
-      {/* Text parts */}
-      {message.parts
-        .filter((part) => part.type === "text")
-        .map((part, i) => (
-          <TextPart
-            key={i}
-            text={(part as { type: "text"; text: string }).text}
-            isUser={isUser}
-            isLastAssistant={isLastAssistant}
-            isStreaming={isStreaming}
-          />
-        ))}
+        if (part.type === "text") {
+          return (
+            <TextPart
+              key={`text-${i}`}
+              text={(part as { type: "text"; text: string }).text}
+              isUser={isUser}
+              isLastAssistant={isLastAssistant}
+              isStreaming={isStreaming}
+            />
+          );
+        }
+
+        return null;
+      })}
     </div>
   );
 }

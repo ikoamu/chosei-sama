@@ -17,7 +17,8 @@ import { ChatInput } from "./chat/ChatInput";
 
 export function Chat({ user }: { user: AuthUser }) {
   const session = useChatSession(user);
-  const { messages, status, error, isStreaming, connected } = session;
+  const { messages, status, error, isStreaming, isThinking, connected } =
+    session;
 
   return (
     <div className="flex flex-col h-screen bg-kumo-elevated relative">
@@ -50,7 +51,7 @@ export function Chat({ user }: { user: AuthUser }) {
             addToolApprovalResponse={session.addToolApprovalResponse}
           />
 
-          {status === "submitted" && <ThinkingIndicator />}
+          {isThinking && <ThinkingIndicator />}
 
           {status === "error" && error && (
             <ErrorBanner message={error.message} onRetry={session.retryLast} />
