@@ -13,3 +13,4 @@ export { mergeIntervals, subtractIntervals } from "./intervals";
 export { workingWindowsInRange } from "./windows";
 export { commonFree, findSlots } from "./slots";
 export { suggestSlots, suggestRecurringSlots } from "./suggest";
+export { zonedWallToUtc } from "./timezone";

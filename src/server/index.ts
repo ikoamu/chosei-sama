@@ -1,12 +1,13 @@
 // =============================================================================
 // server
 // Worker のエントリポイント（wrangler の main）。
-// /oauth/* は認証ハンドラへ、/agents/* はセッション検証を通してから Agent へ
+// /oauth/* は認証ハンドラへ、/api/* は状態を持たない API へ、/agents/* はセッション検証を通してから Agent へ
 // ルーティングする。ChatAgent は Durable Object として re-export する。
 // =============================================================================
 
 import { routeAgentRequest } from "agents";
 import { handleOAuthRoute, verifySession } from "./auth";
+import { handleApiRoute } from "./api";
 import { isOwnAgentPath } from "./auth/agent-access";
 
 export { ChatAgent } from "./chat-agent";
@@ -17,6 +18,10 @@ export default {
 
     if (url.pathname.startsWith("/oauth/")) {
       return handleOAuthRoute(request, env);
+    }
+
+    if (url.pathname.startsWith("/api/")) {
+      return handleApiRoute(request, env);
     }
 
     if (url.pathname.startsWith("/agents/")) {

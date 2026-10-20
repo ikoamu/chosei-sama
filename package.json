@@ -26,13 +26,10 @@
     "@cloudflare/ai-chat": "^0.8.0",
     "@cloudflare/kumo": "^2.4.1",
     "@phosphor-icons/react": "^2.1.10",
-    "@streamdown/code": "^1.1.1",
     "agents": "^0.16.0",
     "ai": "^6.0.194",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "streamdown": "^2.5.0",
-    "use-chat-submit": "^1.0.8",
     "workers-ai-provider": "^3.1.14",
     "zod": "^4.4.3"
   },

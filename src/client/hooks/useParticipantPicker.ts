@@ -79,8 +79,6 @@ export function useParticipantPicker(self: AuthUser) {
   const [query, setQuery] = useState("");
   // 自分は必ず参加者に含める（削除不可）。
   const [selected, setSelected] = useState<DirectoryPerson[]>([selfPerson]);
-  // 希望条件のフリーテキスト（単発/定期はこの文面から Agent が推測する）。
-  const [details, setDetails] = useState("");
 
   const { token, setToken, tokenError, setTokenError } = useDirectoryToken();
   const { results, setResults, loading, open, setOpen } = useDirectorySearch(
@@ -122,8 +120,6 @@ export function useParticipantPicker(self: AuthUser) {
     open,
     setOpen,
     selected,
-    details,
-    setDetails,
     addPerson,
     removePerson,
     visibleResults,

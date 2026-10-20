@@ -1,12 +1,12 @@
 // =============================================================================
 // client/App
-// ルートコンポーネント。ログイン状態に応じてログイン画面／チャット画面を出し分ける。
+// ルートコンポーネント。ログイン状態に応じてログイン画面／調整画面を出し分ける。
 // =============================================================================
 
 import { Suspense } from "react";
 import { Toasty } from "@cloudflare/kumo/components/toast";
 import { useAuth } from "./hooks/useAuth";
-import { Chat } from "./components/Chat";
+import { ScheduleScreen } from "./components/ScheduleScreen";
 import { LoginScreen } from "./components/LoginScreen";
 
 function Loading() {
@@ -35,7 +35,7 @@ export default function App() {
   return (
     <Toasty>
       <Suspense fallback={<Loading />}>
-        <Chat user={user} />
+        <ScheduleScreen user={user} />
       </Suspense>
     </Toasty>
   );
