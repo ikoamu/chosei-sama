@@ -7,70 +7,16 @@
 
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { handleApiRoute } from "./index.ts";
-import { createSessionCookie } from "../auth/session.ts";
+import { apiRequest, env, sessionCookie, stubGoogle } from "./testing.ts";
 import {
   defaultCriteria,
   type SchedulingCriteria,
   type SuggestResult
 } from "../../shared/criteria.ts";
 
-const env = {
-  GOOGLE_CLIENT_ID: "cid",
-  GOOGLE_CLIENT_SECRET: "csecret",
-  ALLOWED_DOMAIN: "example.com",
-  COOKIE_SECRET: "test-cookie-secret"
-} as Env;
-
+/** POST /api/suggest のリクエスト。 */
 function suggestRequest(body: unknown, cookie?: string): Request {
-  return new Request("https://chosei.example.com/api/suggest", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(cookie ? { Cookie: cookie } : {})
-    },
-    body: JSON.stringify(body)
-  });
-}
-
-/** ログイン済みのセッション Cookie（Cookie ヘッダに載せる name=value 部分）。 */
-async function sessionCookie(): Promise<string> {
-  const setCookie = await createSessionCookie(
-    {
-      email: "me@example.com",
-      name: "Me",
-      picture: "",
-      domain: "example.com",
-      refreshToken: "rt"
-    },
-    env.COOKIE_SECRET
-  );
-  return setCookie.split(";")[0];
-}
-
-type BusyMap = Record<string, { start: string; end: string }[] | "error">;
-
-/**
- * Google を模した fetch。token エンドポイントは access_token を返し、
- * FreeBusy は busy（"error" を指定した ID は errors 付き＝読めない）を返す。
- */
-function stubGoogle(busy: BusyMap) {
-  const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
-    const url = String(input);
-    if (url === "https://oauth2.googleapis.com/token") {
-      return Response.json({ access_token: "at", expires_in: 3600 });
-    }
-    if (url === "https://www.googleapis.com/calendar/v3/freeBusy") {
-      const calendars = Object.fromEntries(
-        Object.entries(busy).map(([id, b]) => [
-          id,
-          b === "error" ? { errors: [{ reason: "notFound" }] } : { busy: b }
-        ])
-      );
-      return Response.json({ calendars });
-    }
-    throw new Error(`unexpected fetch: ${url}`);
-  });
-  vi.stubGlobal("fetch", fetchMock);
+  return apiRequest("/api/suggest", body, cookie);
 }
 
 /** 必須項目を埋めた単発の調整条件（月曜 2026-01-05 の 1 日）。 */

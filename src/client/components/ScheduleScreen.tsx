@@ -14,6 +14,7 @@ import {
   type SchedulingCriteria,
   type SuggestResult
 } from "../../shared/criteria";
+import type { Participant } from "../../shared/booking";
 import { useParticipantPicker } from "../hooks/useParticipantPicker";
 import { requestSuggest, todayInTimeZone } from "../lib/suggest";
 import { AppHeader } from "./AppHeader";
@@ -26,7 +27,12 @@ export function ScheduleScreen({ user }: { user: AuthUser }) {
   const [criteria, setCriteria] = useState<SchedulingCriteria>(() =>
     defaultCriteria(todayInTimeZone())
   );
-  const [result, setResult] = useState<SuggestResult | null>(null);
+  // 結果と、その結果を出したときの入力（以後フォームを編集しても予約はこちらを使う）。
+  const [result, setResult] = useState<{
+    suggest: SuggestResult;
+    criteria: SchedulingCriteria;
+    participants: Participant[];
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -36,13 +42,16 @@ export function ScheduleScreen({ user }: { user: AuthUser }) {
     setLoading(true);
     setError(null);
     setResult(null);
+    const participants = picker.selected.map(({ email, name }) => ({
+      email,
+      name
+    }));
     try {
-      setResult(
-        await requestSuggest(
-          picker.selected.map((p) => p.email),
-          criteria
-        )
+      const suggest = await requestSuggest(
+        participants.map((p) => p.email),
+        criteria
       );
+      setResult({ suggest, criteria, participants });
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -71,7 +80,13 @@ export function ScheduleScreen({ user }: { user: AuthUser }) {
           </Button>
         </div>
         {error && <p className="text-sm text-red-600">{error}</p>}
-        {result && <SuggestResultView result={result} />}
+        {result && (
+          <SuggestResultView
+            result={result.suggest}
+            criteria={result.criteria}
+            participants={result.participants}
+          />
+        )}
       </main>
     </div>
   );

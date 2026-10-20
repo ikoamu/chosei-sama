@@ -1,9 +1,11 @@
 // =============================================================================
 // client/lib/suggest
-// 候補提案 API（POST /api/suggest）の呼び出しと、日付まわりの表示ヘルパー。
+// 候補提案 API（POST /api/suggest）・予約確定 API（POST /api/events）の呼び出しと、
+// 日付まわりの表示ヘルパー。
 // =============================================================================
 
 import type { SchedulingCriteria, SuggestResult } from "../../shared/criteria";
+import type { BookingRequest } from "../../shared/booking";
 
 /** 調整さまは日本時間固定で扱う。 */
 const TIME_ZONE = "Asia/Tokyo";
@@ -50,4 +52,18 @@ export async function requestSuggest(
     throw new Error(`候補の取得に失敗しました（${res.status}）`);
   }
   return (await res.json()) as SuggestResult;
+}
+
+export async function requestBooking(
+  req: BookingRequest
+): Promise<{ htmlLink?: string; alreadyExists: boolean }> {
+  const res = await fetch("/api/events", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(req)
+  });
+  if (!res.ok) {
+    throw new Error(`予約に失敗しました（${res.status}）`);
+  }
+  return (await res.json()) as { htmlLink?: string; alreadyExists: boolean };
 }
