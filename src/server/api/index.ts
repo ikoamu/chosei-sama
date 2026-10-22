@@ -3,6 +3,7 @@
 // 状態を持たない HTTP API（/api/*）のハンドラ（docs/adr/0003）。
 // リクエストごとにセッション Cookie を検証し、その refresh_token から
 // 依頼者本人の access_token を発行して Google を呼ぶ。
+//   - POST /api/draft   … 調整条件の下書き（Jev）
 //   - POST /api/suggest … 候補提案
 //   - POST /api/events  … 予約確定
 // =============================================================================
@@ -11,11 +12,13 @@ import { refreshAccessToken, verifySession } from "../auth";
 import type { UserSession } from "../auth/session";
 import {
   missingRequired,
+  todayInTimeZone,
   type SchedulingCriteria
 } from "../../shared/criteria";
 import type { BookingRequest } from "../../shared/booking";
 import { suggestFromCriteria } from "./suggest";
 import { bookEvent } from "./events";
+import { draftCriteria } from "../jev";
 
 interface SuggestBody {
   members: string[];
@@ -37,6 +40,13 @@ async function accessTokenFor(
 
 const TOKEN_FAILED = () =>
   Response.json({ error: "token refresh failed" }, { status: 401 });
+
+async function handleDraft(request: Request, env: Env): Promise<Response> {
+  const { details } = (await request.json()) as { details: string };
+  return Response.json(
+    await draftCriteria(env.TYPESAFE_API_KEY, details, todayInTimeZone())
+  );
+}
 
 async function handleSuggest(
   request: Request,
@@ -89,6 +99,8 @@ export async function handleApiRoute(
   }
   if (request.method === "POST") {
     switch (new URL(request.url).pathname) {
+      case "/api/draft":
+        return handleDraft(request, env);
       case "/api/suggest":
         return handleSuggest(request, session, env);
       case "/api/events":

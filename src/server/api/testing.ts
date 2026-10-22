@@ -1,7 +1,7 @@
 // =============================================================================
 // server/api/testing
 // API テスト用の共有ヘルパー（テストからのみ使う）。
-// Request の組み立て・ログイン済みセッション Cookie・Google を模した fetch。
+// Request の組み立て・ログイン済みセッション Cookie・Google / Jev を模した fetch。
 // =============================================================================
 
 import { vi } from "vitest";
@@ -11,7 +11,8 @@ export const env = {
   GOOGLE_CLIENT_ID: "cid",
   GOOGLE_CLIENT_SECRET: "csecret",
   ALLOWED_DOMAIN: "example.com",
-  COOKIE_SECRET: "test-cookie-secret"
+  COOKIE_SECRET: "test-cookie-secret",
+  TYPESAFE_API_KEY: "ts-key"
 } as Env;
 
 export function apiRequest(
@@ -87,5 +88,33 @@ export function stubGoogle(busy: BusyMap = {}) {
       fetchMock.mock.calls
         .filter(([input]) => String(input).startsWith(EVENTS_URL))
         .map(([, init]) => JSON.parse(String(init?.body)))
+  };
+}
+
+const JEV_URL = "https://api.typesafe.ai/v1/systemone";
+
+/**
+ * Jev を模した fetch。respond がリクエスト body から応答を作る（例外を投げれば
+ * 通信エラー扱い）。戻り値の requests() で送られた body とヘッダを取り出せる。
+ */
+export function stubJev(
+  respond: (body: { state: string }) => Promise<Response>
+) {
+  const fetchMock = vi.fn(
+    async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url !== JEV_URL) {
+        throw new Error(`unexpected fetch: ${url}`);
+      }
+      return respond(JSON.parse(String(init?.body)));
+    }
+  );
+  vi.stubGlobal("fetch", fetchMock);
+  return {
+    requests: () =>
+      fetchMock.mock.calls.map(([, init]) => ({
+        body: JSON.parse(String(init?.body)),
+        headers: new Headers(init?.headers)
+      }))
   };
 }

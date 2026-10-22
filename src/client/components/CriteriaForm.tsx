@@ -6,28 +6,33 @@
 //   - 任意: 希望時間帯（ランキングを上げるだけ）
 // =============================================================================
 
-import type { SchedulingCriteria } from "../../shared/criteria";
+import type { CriteriaField, SchedulingCriteria } from "../../shared/criteria";
 import {
   DateField,
+  type FieldMark,
   NumberField,
   SelectField,
   WeekdayField
 } from "./criteria/fields";
 
 type Patch = (patch: Partial<SchedulingCriteria>) => void;
+export type CriteriaMarks = Partial<Record<CriteriaField, FieldMark>>;
 
 /** 定期のときだけの項目（頻度・回数）。 */
 function RecurringFields({
   criteria,
-  set
+  set,
+  marks
 }: {
   criteria: SchedulingCriteria;
   set: Patch;
+  marks: CriteriaMarks;
 }) {
   return (
     <>
       <SelectField
         label="頻度"
+        mark={marks.everyNWeeks}
         value={String(criteria.everyNWeeks)}
         options={[
           ["1", "毎週"],
@@ -38,6 +43,7 @@ function RecurringFields({
       />
       <NumberField
         label="回数 ※必須"
+        mark={marks.occurrences}
         min={1}
         value={criteria.occurrences}
         onChange={(occurrences) => set({ occurrences })}
@@ -49,16 +55,19 @@ function RecurringFields({
 /** 希望時間帯（任意）。片方だけ入れたら、もう片方は勤務時間の端で補う。 */
 function PreferredWindowFields({
   criteria,
-  set
+  set,
+  marks
 }: {
   criteria: SchedulingCriteria;
   set: Patch;
+  marks: CriteriaMarks;
 }) {
   const w = criteria.preferredWindow;
   return (
     <>
       <NumberField
         label="希望時間帯（任意・開始時）"
+        mark={marks.preferredWindow}
         min={0}
         max={23}
         value={w?.startHour ?? null}
@@ -73,6 +82,7 @@ function PreferredWindowFields({
       />
       <NumberField
         label="希望時間帯（任意・終了時）"
+        mark={marks.preferredWindow}
         min={0}
         max={23}
         value={w?.endHour ?? null}
@@ -90,11 +100,14 @@ function PreferredWindowFields({
 export function CriteriaForm({
   criteria,
   onChange,
-  disabled
+  disabled,
+  marks
 }: {
   criteria: SchedulingCriteria;
   onChange: (c: SchedulingCriteria) => void;
   disabled: boolean;
+  /** 下書きでの各項目の印（要確認・既定値）。 */
+  marks: CriteriaMarks;
 }) {
   const set: Patch = (patch) => onChange({ ...criteria, ...patch });
   const recurring = criteria.kind === "recurring";
@@ -103,6 +116,7 @@ export function CriteriaForm({
     <fieldset disabled={disabled} className="grid grid-cols-2 gap-3">
       <SelectField
         label="種類"
+        mark={marks.kind}
         value={criteria.kind}
         options={[
           ["one-off", "単発"],
@@ -112,29 +126,33 @@ export function CriteriaForm({
       />
       <NumberField
         label="所要時間（分）※必須"
+        mark={marks.durationMinutes}
         min={1}
         value={criteria.durationMinutes}
         onChange={(durationMinutes) => set({ durationMinutes })}
       />
       <DateField
         label={recurring ? "開始日" : "検索期間の開始日"}
+        mark={marks.startDate}
         value={criteria.startDate}
         onChange={(startDate) => set({ startDate })}
       />
       {recurring ? (
-        <RecurringFields criteria={criteria} set={set} />
+        <RecurringFields criteria={criteria} set={set} marks={marks} />
       ) : (
         <DateField
           label="検索期間の終了日"
+          mark={marks.endDate}
           value={criteria.endDate}
           onChange={(endDate) => set({ endDate })}
         />
       )}
       <WeekdayField
+        mark={marks.weekdays}
         value={criteria.weekdays}
         onChange={(weekdays) => set({ weekdays })}
       />
-      <PreferredWindowFields criteria={criteria} set={set} />
+      <PreferredWindowFields criteria={criteria} set={set} marks={marks} />
     </fieldset>
   );
 }

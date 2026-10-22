@@ -28,11 +28,22 @@ export interface SchedulingCriteria {
   preferredWindow: { startHour: number; endHour: number } | null;
 }
 
+/** 調整さまは日本時間固定で扱う。 */
+const TIME_ZONE = "Asia/Tokyo";
+
+/** Asia/Tokyo における今日（YYYY-MM-DD）。 */
+export function todayInTimeZone(): string {
+  // en-CA ロケールは YYYY-MM-DD 形式で出力する。
+  return new Intl.DateTimeFormat("en-CA", { timeZone: TIME_ZONE }).format(
+    new Date()
+  );
+}
+
 /** 検索期間の既定の長さ（日）。 */
 const DEFAULT_PERIOD_DAYS = 14;
 
 /** YYYY-MM-DD に日数を足す（暦日計算なので UTC で行えばずれない）。 */
-function addDays(date: string, days: number): string {
+export function addDays(date: string, days: number): string {
   const d = new Date(`${date}T00:00:00Z`);
   d.setUTCDate(d.getUTCDate() + days);
   return d.toISOString().slice(0, 10);
@@ -72,3 +83,16 @@ export type SuggestResult =
   /** free/busy を読めなかった参加者。1人でもいれば候補は出さない（空き可視性）。 */
   | { status: "unreadable"; ids: string[] }
   | { status: "none" };
+
+export type CriteriaField = keyof SchedulingCriteria;
+
+/** 調整条件の下書き（POST /api/draft の応答）。docs/adr/0003。 */
+export interface CriteriaDraft {
+  criteria: SchedulingCriteria;
+  /** 要確認の項目（確からしさが低い・欠けた必須項目）。 */
+  review: CriteriaField[];
+  /** 文中に指定がなく、既定値で埋めた項目。 */
+  defaulted: CriteriaField[];
+  /** Jev が失敗した（手入力に切り替える）。 */
+  failed: boolean;
+}
