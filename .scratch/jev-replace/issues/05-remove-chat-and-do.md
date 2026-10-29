@@ -1,6 +1,6 @@
 # チャット・DO・Agents SDK を削除する
 
-Status: ready-for-agent
+Status: done
 
 ## What to build
 
@@ -13,10 +13,10 @@ Status: ready-for-agent
 
 ## Acceptance criteria
 
-- [ ] チャット関連のコードと依存が残っていない（`pnpm quality` で未使用の検出が出ない）
-- [ ] `deleted_classes` のマイグレーションが入っている
-- [ ] `pnpm check` と `pnpm test` が通る
-- [ ] `CLAUDE.md` が新しい構成を説明している
+- [x] チャット関連のコードと依存が残っていない（`pnpm quality` で未使用の検出が出ない）
+- [x] `deleted_classes` のマイグレーションが入っている
+- [x] `pnpm check` と `pnpm test` が通る
+- [x] `CLAUDE.md` が新しい構成を説明している
 - [ ] PR の説明に「マージ時に DO のデータが消える」ことを明記している
 
 ## Blocked by
@@ -25,3 +25,5 @@ Status: ready-for-agent
 - .scratch/jev-replace/issues/04-jev-criteria-draft.md
 
 ## Comments
+
+- 2026-10-29: 実装済み。PR 説明への明記は PR 作成時に行う（未作成）。

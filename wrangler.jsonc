@@ -4,24 +4,20 @@
   "main": "src/server/index.ts",
   "compatibility_date": "2026-03-02",
   "compatibility_flags": ["nodejs_compat"],
-  "ai": { "binding": "AI", "remote": true },
   "assets": {
     "directory": "./public",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/agents/*", "/oauth/*", "/api/*"]
+    "run_worker_first": ["/oauth/*", "/api/*"]
   },
-  "durable_objects": {
-    "bindings": [
-      {
-        "class_name": "ChatAgent",
-        "name": "ChatAgent"
-      }
-    ]
-  },
+  // チャット版の ChatAgent（DO）は ADR 0003 で廃止。v2 で削除し、保存データも消える。
   "migrations": [
     {
       "new_sqlite_classes": ["ChatAgent"],
       "tag": "v1"
+    },
+    {
+      "deleted_classes": ["ChatAgent"],
+      "tag": "v2"
     }
   ]
 }
