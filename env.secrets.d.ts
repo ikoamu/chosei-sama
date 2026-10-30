@@ -13,4 +13,5 @@ interface Env {
   GOOGLE_CLIENT_SECRET: string;
   ALLOWED_DOMAIN: string;
   COOKIE_SECRET: string;
+  TYPESAFE_API_KEY: string;
 }

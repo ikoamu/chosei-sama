@@ -2,11 +2,10 @@
   "name": "chosei-sama",
   "version": "1.0.0",
   "private": true,
-  "description": "Google Workspace カレンダーから全員の空き時間を提案するチャットエージェント",
+  "description": "Google Workspace カレンダーから全員の空き時間を提案する社内ツール",
   "keywords": [
-    "agents",
-    "ai",
-    "cloudflare"
+    "cloudflare",
+    "google-calendar"
   ],
   "license": "MIT",
   "type": "module",
@@ -23,24 +22,14 @@
     "quality": "fallow health --score --hotspots --targets"
   },
   "dependencies": {
-    "@cloudflare/ai-chat": "^0.8.0",
     "@cloudflare/kumo": "^2.4.1",
     "@phosphor-icons/react": "^2.1.10",
-    "@streamdown/code": "^1.1.1",
-    "agents": "^0.16.0",
-    "ai": "^6.0.194",
     "react": "^19.2.7",
-    "react-dom": "^19.2.7",
-    "streamdown": "^2.5.0",
-    "use-chat-submit": "^1.0.8",
-    "workers-ai-provider": "^3.1.14",
-    "zod": "^4.4.3"
+    "react-dom": "^19.2.7"
   },
   "devDependencies": {
-    "@babel/plugin-proposal-decorators": "^7.29.7",
     "@cloudflare/vite-plugin": "1.39.1",
     "@cloudflare/workers-types": "^4.20260602.1",
-    "@rolldown/plugin-babel": "^0.2.3",
     "@tailwindcss/vite": "^4.3.0",
     "@types/node": "^25.9.1",
     "@types/react": "^19.2.16",

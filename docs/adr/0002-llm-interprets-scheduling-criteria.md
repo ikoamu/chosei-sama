@@ -1,5 +1,5 @@
 ---
-status: accepted
+status: superseded by ADR-0003
 ---
 
 # 調整条件は UI で構造化せず、LLM が自然文から解釈する
